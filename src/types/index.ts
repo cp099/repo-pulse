@@ -1,0 +1,137 @@
+export interface Repository {
+  id: number;
+  name: string;
+  full_name: string;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+  private: boolean;
+  html_url: string;
+  description: string | null;
+  default_branch: string;
+  updated_at: string;
+  has_pages: boolean;
+  fork: boolean;
+  archived: boolean;
+}
+
+export interface RepoFeatures {
+  dependabot_enabled: boolean;
+  code_scanning_enabled: boolean;
+  pages_enabled: boolean;
+  pages_status?: 'built' | 'building' | 'errored' | 'disabled' | 'unknown';
+  pages_url?: string;
+  last_pages_run?: {
+    id: number;
+    name: string;
+    conclusion: string | null;
+    status: string;
+    html_url: string;
+    updated_at: string;
+  } | null;
+}
+
+export interface DependabotAlert {
+  number: number;
+  state: 'open' | 'fixed' | 'dismissed';
+  dependency: {
+    package: {
+      name: string;
+      ecosystem: string;
+    };
+    manifest_path: string;
+  };
+  security_advisory: {
+    ghsa_id: string;
+    cve_id: string | null;
+    summary: string;
+    description: string;
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    cvss?: {
+      score: number;
+    } | null;
+  };
+  security_vulnerability?: {
+    package: {
+      name: string;
+    };
+    vulnerable_version_range: string;
+    first_patched_version?: {
+      identifier: string;
+    } | null;
+  };
+  html_url: string;
+  created_at: string;
+}
+
+export interface CodeScanningAlert {
+  number: number;
+  state: 'open' | 'closed' | 'fixed' | 'dismissed';
+  rule: {
+    id: string;
+    name: string;
+    severity: 'error' | 'warning' | 'note' | 'none';
+    description: string;
+    tags?: string[];
+  };
+  tool: {
+    name: string;
+    version: string | null;
+  };
+  most_recent_instance: {
+    ref: string;
+    state: string;
+    location: {
+      path: string;
+      start_line: number;
+      end_line: number;
+    };
+  };
+  html_url: string;
+  created_at: string;
+}
+
+export interface RepoHealthSummary {
+  repo: Repository;
+  features: RepoFeatures;
+  dependabot_alerts: DependabotAlert[];
+  code_scanning_alerts: CodeScanningAlert[];
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  code_scanning_error_count: number;
+  code_scanning_warning_count: number;
+  pages_status: 'built' | 'building' | 'errored' | 'disabled' | 'unknown';
+  health_status: 'healthy' | 'warning' | 'critical';
+  last_scanned: string;
+}
+
+export interface GlobalMetrics {
+  total_tracked_repos: number;
+  healthy_repos_count: number;
+  warning_repos_count: number;
+  critical_repos_count: number;
+  total_critical_alerts: number;
+  total_high_alerts: number;
+  total_medium_alerts: number;
+  total_code_scanning_errors: number;
+  failing_pages_count: number;
+  last_updated: string;
+}
+
+export interface UserConfig {
+  githubToken: string;
+  monitoredRepos: string[]; // array of full_name e.g. "owner/repo"
+  autoRefreshInterval: number; // in milliseconds (0 for manual)
+  useFirebaseSync: boolean;
+  firebaseConfig?: {
+    apiKey: string;
+    authDomain: string;
+    projectId: string;
+    storageBucket: string;
+    messagingSenderId: string;
+    appId: string;
+  };
+}
