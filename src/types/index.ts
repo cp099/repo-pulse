@@ -94,6 +94,36 @@ export interface CodeScanningAlert {
   created_at: string;
 }
 
+export interface PullRequestAlert {
+  id: number;
+  number: number;
+  title: string;
+  state: 'open' | 'closed';
+  draft: boolean;
+  html_url: string;
+  created_at: string;
+  updated_at: string;
+  user: {
+    login: string;
+    avatar_url: string;
+    type: string;
+  };
+  head: {
+    ref: string;
+    label: string;
+  };
+  base: {
+    ref: string;
+  };
+  labels: {
+    id: number;
+    name: string;
+    color: string;
+  }[];
+  mergeable_state?: string;
+  has_conflicts?: boolean;
+}
+
 export interface LanguageItem {
   name: string;
   percentage: number;
@@ -106,12 +136,15 @@ export interface RepoHealthSummary {
   features: RepoFeatures;
   dependabot_alerts: DependabotAlert[];
   code_scanning_alerts: CodeScanningAlert[];
+  pull_requests?: PullRequestAlert[];
   critical_count: number;
   high_count: number;
   medium_count: number;
   low_count: number;
   code_scanning_error_count: number;
   code_scanning_warning_count: number;
+  open_pr_count: number;
+  has_pr_conflicts?: boolean;
   pages_status: 'built' | 'building' | 'errored' | 'disabled' | 'unknown';
   health_status: 'healthy' | 'warning' | 'critical';
   languages?: LanguageItem[];
@@ -128,6 +161,7 @@ export interface GlobalMetrics {
   total_high_alerts: number;
   total_medium_alerts: number;
   total_code_scanning_errors: number;
+  total_open_prs: number;
   failing_pages_count: number;
   last_updated: string;
 }

@@ -212,6 +212,65 @@ export const MOCK_HEALTH_SUMMARIES: RepoHealthSummary[] = [
     low_count: 0,
     code_scanning_error_count: 1,
     code_scanning_warning_count: 0,
+    open_pr_count: 2,
+    has_pr_conflicts: true,
+    pull_requests: [
+      {
+        id: 7001,
+        number: 48,
+        title: 'build(deps): bump vite from 5.4.10 to 6.2.0',
+        state: 'open',
+        draft: false,
+        html_url: 'https://github.com/cp099/ecommerce-core-api/pull/48',
+        created_at: '2026-10-19T08:30:00Z',
+        updated_at: '2026-10-21T15:20:00Z',
+        user: {
+          login: 'dependabot[bot]',
+          avatar_url: 'https://avatars.githubusercontent.com/in/29110',
+          type: 'Bot',
+        },
+        head: {
+          ref: 'dependabot/npm_and_yarn/vite-6.2.0',
+          label: 'cp099:dependabot/npm_and_yarn/vite-6.2.0',
+        },
+        base: {
+          ref: 'main',
+        },
+        labels: [
+          { id: 101, name: 'dependencies', color: '0366d6' },
+          { id: 102, name: 'javascript', color: 'f1e05a' },
+        ],
+        mergeable_state: 'dirty',
+        has_conflicts: true,
+      },
+      {
+        id: 7002,
+        number: 51,
+        title: 'feat: add idempotent order fulfillment retry hook',
+        state: 'open',
+        draft: false,
+        html_url: 'https://github.com/cp099/ecommerce-core-api/pull/51',
+        created_at: '2026-10-20T16:45:00Z',
+        updated_at: '2026-10-21T11:10:00Z',
+        user: {
+          login: 'cp099',
+          avatar_url: 'https://github.com/cp099.png',
+          type: 'User',
+        },
+        head: {
+          ref: 'feat/order-fulfillment-retry',
+          label: 'cp099:feat/order-fulfillment-retry',
+        },
+        base: {
+          ref: 'main',
+        },
+        labels: [
+          { id: 103, name: 'enhancement', color: 'a2eeef' },
+        ],
+        mergeable_state: 'clean',
+        has_conflicts: false,
+      },
+    ],
     pages_status: 'disabled',
     health_status: 'critical',
     languages: computeLanguageBreakdown({
@@ -275,6 +334,37 @@ export const MOCK_HEALTH_SUMMARIES: RepoHealthSummary[] = [
     low_count: 0,
     code_scanning_error_count: 0,
     code_scanning_warning_count: 0,
+    open_pr_count: 1,
+    has_pr_conflicts: false,
+    pull_requests: [
+      {
+        id: 7003,
+        number: 14,
+        title: 'docs: update OpenAPI 3.1 schema specs for billing endpoints',
+        state: 'open',
+        draft: false,
+        html_url: 'https://github.com/cp099/developer-docs-portal/pull/14',
+        created_at: '2026-10-20T10:15:00Z',
+        updated_at: '2026-10-21T13:00:00Z',
+        user: {
+          login: 'cp099',
+          avatar_url: 'https://github.com/cp099.png',
+          type: 'User',
+        },
+        head: {
+          ref: 'docs/billing-schema-v3',
+          label: 'cp099:docs/billing-schema-v3',
+        },
+        base: {
+          ref: 'main',
+        },
+        labels: [
+          { id: 104, name: 'documentation', color: '0075ca' },
+        ],
+        mergeable_state: 'clean',
+        has_conflicts: false,
+      },
+    ],
     pages_status: 'errored',
     health_status: 'critical',
     languages: computeLanguageBreakdown({
@@ -355,6 +445,9 @@ export const MOCK_HEALTH_SUMMARIES: RepoHealthSummary[] = [
     low_count: 0,
     code_scanning_error_count: 0,
     code_scanning_warning_count: 1,
+    open_pr_count: 0,
+    has_pr_conflicts: false,
+    pull_requests: [],
     pages_status: 'disabled',
     health_status: 'critical',
     languages: computeLanguageBreakdown({
@@ -390,6 +483,37 @@ export const MOCK_HEALTH_SUMMARIES: RepoHealthSummary[] = [
     low_count: 0,
     code_scanning_error_count: 0,
     code_scanning_warning_count: 0,
+    open_pr_count: 1,
+    has_pr_conflicts: false,
+    pull_requests: [
+      {
+        id: 7004,
+        number: 22,
+        title: 'refactor: dark theme contrast tuning for WCAG AA compliance',
+        state: 'open',
+        draft: true,
+        html_url: 'https://github.com/cp099/analytics-dashboard-spa/pull/22',
+        created_at: '2026-10-21T07:40:00Z',
+        updated_at: '2026-10-21T09:15:00Z',
+        user: {
+          login: 'cp099',
+          avatar_url: 'https://github.com/cp099.png',
+          type: 'User',
+        },
+        head: {
+          ref: 'chore/wcag-aa-contrast',
+          label: 'cp099:chore/wcag-aa-contrast',
+        },
+        base: {
+          ref: 'main',
+        },
+        labels: [
+          { id: 105, name: 'ui', color: 'bfdadc' },
+        ],
+        mergeable_state: 'clean',
+        has_conflicts: false,
+      },
+    ],
     pages_status: 'built',
     health_status: 'healthy',
     languages: computeLanguageBreakdown({
@@ -416,6 +540,9 @@ export const MOCK_HEALTH_SUMMARIES: RepoHealthSummary[] = [
     low_count: 0,
     code_scanning_error_count: 0,
     code_scanning_warning_count: 0,
+    open_pr_count: 0,
+    has_pr_conflicts: false,
+    pull_requests: [],
     pages_status: 'disabled',
     health_status: 'healthy',
     languages: computeLanguageBreakdown({

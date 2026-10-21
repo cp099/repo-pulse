@@ -2,6 +2,7 @@ import {
   CodeScanningAlert,
   DependabotAlert,
   LanguageItem,
+  PullRequestAlert,
   RepoFeatures,
   RepoHealthSummary,
   Repository,
@@ -293,6 +294,46 @@ export async function fetchRepositoryLanguages(owner: string, repo: string, toke
 }
 
 /**
+ * Fetch open pull requests for a repository
+ */
+export async function fetchOpenPullRequests(owner: string, repo: string, token: string): Promise<PullRequestAlert[]> {
+  try {
+    const rawPulls = await githubFetch(`repos/${owner}/${repo}/pulls?state=open&per_page=30&sort=updated&direction=desc`, token);
+    if (!Array.isArray(rawPulls)) return [];
+
+    return rawPulls.map((pr: any) => ({
+      id: pr.id,
+      number: pr.number,
+      title: pr.title,
+      state: pr.state,
+      draft: !!pr.draft,
+      html_url: pr.html_url,
+      created_at: pr.created_at,
+      updated_at: pr.updated_at,
+      user: {
+        login: pr.user?.login || 'unknown',
+        avatar_url: pr.user?.avatar_url || '',
+        type: pr.user?.type || (pr.user?.login?.includes('[bot]') ? 'Bot' : 'User'),
+      },
+      head: {
+        ref: pr.head?.ref || '',
+        label: pr.head?.label || '',
+      },
+      base: {
+        ref: pr.base?.ref || '',
+      },
+      labels: Array.isArray(pr.labels)
+        ? pr.labels.map((l: any) => ({ id: l.id, name: l.name, color: l.color }))
+        : [],
+      mergeable_state: pr.mergeable_state || 'unknown',
+      has_conflicts: pr.mergeable === false || pr.mergeable_state === 'dirty',
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Scan a single repository completely and build its health summary
  */
 export async function scanRepositoryHealth(repo: Repository, token: string): Promise<RepoHealthSummary> {
@@ -307,6 +348,14 @@ export async function scanRepositoryHealth(repo: Repository, token: string): Pro
   let codeScanningAlerts: CodeScanningAlert[] = [];
   if (features.code_scanning_enabled) {
     codeScanningAlerts = await fetchCodeScanningAlerts(owner, name, token);
+  }
+
+  // Fetch open pull requests
+  let pullRequests: PullRequestAlert[] = [];
+  try {
+    pullRequests = await fetchOpenPullRequests(owner, name, token);
+  } catch {
+    // continue
   }
 
   // Fetch languages breakdown
@@ -324,10 +373,13 @@ export async function scanRepositoryHealth(repo: Repository, token: string): Pro
   const codeScanningErrorCount = codeScanningAlerts.filter(a => a.rule?.severity === 'error').length;
   const codeScanningWarningCount = codeScanningAlerts.filter(a => a.rule?.severity === 'warning').length;
 
+  const openPrCount = pullRequests.length;
+  const hasPrConflicts = pullRequests.some(pr => pr.has_conflicts);
+
   let healthStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
   if (criticalCount > 0 || codeScanningErrorCount > 0 || features.pages_status === 'errored') {
     healthStatus = 'critical';
-  } else if (highCount > 0 || mediumCount > 0 || codeScanningWarningCount > 0) {
+  } else if (highCount > 0 || mediumCount > 0 || codeScanningWarningCount > 0 || hasPrConflicts) {
     healthStatus = 'warning';
   }
 
@@ -336,12 +388,15 @@ export async function scanRepositoryHealth(repo: Repository, token: string): Pro
     features,
     dependabot_alerts: dependabotAlerts,
     code_scanning_alerts: codeScanningAlerts,
+    pull_requests: pullRequests,
     critical_count: criticalCount,
     high_count: highCount,
     medium_count: mediumCount,
     low_count: lowCount,
     code_scanning_error_count: codeScanningErrorCount,
     code_scanning_warning_count: codeScanningWarningCount,
+    open_pr_count: openPrCount,
+    has_pr_conflicts: hasPrConflicts,
     pages_status: features.pages_status || 'disabled',
     health_status: healthStatus,
     languages,

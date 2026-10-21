@@ -13,6 +13,8 @@ import {
   Clock,
   Code2,
   Package,
+  GitPullRequest,
+  AlertCircle,
 } from 'lucide-react';
 
 export const RepoTable: React.FC = () => {
@@ -37,6 +39,7 @@ export const RepoTable: React.FC = () => {
     if (filterStatus === 'warning') return item.health_status === 'warning';
     if (filterStatus === 'healthy') return item.health_status === 'healthy';
     if (filterStatus === 'pages') return item.features.pages_enabled;
+    if (filterStatus === 'prs') return item.open_pr_count > 0;
 
     return true;
   });
@@ -56,6 +59,9 @@ export const RepoTable: React.FC = () => {
       const totalAlerts = (s: RepoHealthSummary) =>
         s.dependabot_alerts.length + s.code_scanning_alerts.length;
       return totalAlerts(b) - totalAlerts(a);
+    }
+    if (sortBy === 'prs') {
+      return (b.open_pr_count || 0) - (a.open_pr_count || 0);
     }
     if (sortBy === 'pages') {
       const pageRank = (s: RepoHealthSummary) =>
@@ -89,6 +95,7 @@ export const RepoTable: React.FC = () => {
               <th className="py-2.5 px-3.5">Active Features</th>
               <th className="py-2.5 px-3.5">Dependabot Vulnerabilities</th>
               <th className="py-2.5 px-3.5">CodeQL Flaws</th>
+              <th className="py-2.5 px-3.5">Pull Requests</th>
               <th className="py-2.5 px-3.5">Pages Build</th>
               <th className="py-2.5 px-3.5 text-right">Actions</th>
             </tr>
@@ -235,7 +242,32 @@ const RepoTableRow: React.FC<{
         )}
       </td>
 
-      {/* 5. GitHub Pages Build Status */}
+      {/* 5. Pull Requests Alerts & Conflict Status */}
+      <td className="py-2.5 px-3.5 align-middle">
+        {summary.open_pr_count === 0 ? (
+          <span className="inline-flex items-center space-x-1 text-gh-fg-muted text-[11px] font-mono">
+            <span>0 open</span>
+          </span>
+        ) : (
+          <div className="flex items-center space-x-1.5 flex-wrap gap-y-0.5">
+            <span className="inline-flex items-center space-x-1 px-1.5 py-0.2 rounded text-[10px] font-semibold font-mono bg-gh-canvas-default text-gh-fg-default border border-gh-border-default">
+              <GitPullRequest className="w-2.5 h-2.5 text-gh-accent-fg" />
+              <span>{summary.open_pr_count} {summary.open_pr_count === 1 ? 'PR' : 'PRs'}</span>
+            </span>
+            {summary.has_pr_conflicts && (
+              <span
+                title="Merge conflicts detected in open pull requests"
+                className="inline-flex items-center space-x-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold font-mono bg-gh-warning-subtle text-gh-warning-fg border border-gh-warning-fg/40"
+              >
+                <AlertCircle className="w-2.5 h-2.5" />
+                <span>Conflict</span>
+              </span>
+            )}
+          </div>
+        )}
+      </td>
+
+      {/* 6. GitHub Pages Build Status */}
       <td className="py-2.5 px-3.5 align-middle">
         {!features.pages_enabled ? (
           <span className="text-gh-fg-muted/40 text-xs font-mono">—</span>

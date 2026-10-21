@@ -10,6 +10,7 @@ import {
   ArrowUpDown,
   LayoutGrid,
   List,
+  GitPullRequest,
 } from 'lucide-react';
 import { SortOption } from '../context/DashboardContext';
 
@@ -126,6 +127,24 @@ export const FilterToolbar: React.FC = () => {
             {pagesCount}
           </span>
         </button>
+
+        {/* Pull Requests */}
+        <button
+          role="tab"
+          aria-selected={filterStatus === 'prs'}
+          onClick={() => setFilterStatus('prs')}
+          className={`flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap transition-colors min-h-[32px] ${
+            filterStatus === 'prs'
+              ? 'bg-gh-canvas-subtle text-gh-accent-fg border border-gh-border-default shadow-sm'
+              : 'text-[#c9d1d9] hover:text-gh-accent-fg hover:bg-gh-canvas-subtle/50'
+          }`}
+        >
+          <GitPullRequest className="w-3.5 h-3.5 text-gh-accent-fg" />
+          <span>Pull Requests</span>
+          <span className="ml-1 px-1.5 py-0.2 rounded-full bg-gh-border-default text-[10px] text-gh-fg-default font-mono">
+            {metrics.total_open_prs}
+          </span>
+        </button>
       </div>
 
       {/* View switch, sort & search */}
@@ -169,6 +188,7 @@ export const FilterToolbar: React.FC = () => {
           >
             <option value="severity">Sort: Highest Severity</option>
             <option value="alerts">Sort: Most Alerts</option>
+            <option value="prs">Sort: Most Pull Requests</option>
             <option value="name">Sort: Repository Name</option>
             <option value="pages">Sort: Pages Build Status</option>
           </select>

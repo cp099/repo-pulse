@@ -17,6 +17,9 @@ import {
   Flame,
   AlertTriangle,
   GitCommit,
+  GitPullRequest,
+  GitMerge,
+  AlertCircle,
   Lock,
   Copy,
   Check,
@@ -29,10 +32,12 @@ interface AlertPageProps {
 
 export const AlertPage: React.FC<AlertPageProps> = ({ summary, onBack }) => {
   const { repo, features, dependabot_alerts, code_scanning_alerts } = summary;
+  const pullRequests = summary.pull_requests || [];
 
-  const [activeTab, setActiveTab] = useState<'dependabot' | 'codeql' | 'pages'>('dependabot');
+  const [activeTab, setActiveTab] = useState<'dependabot' | 'codeql' | 'pull_requests' | 'pages'>('dependabot');
   const [expandedDependabot, setExpandedDependabot] = useState<Set<number>>(new Set([dependabot_alerts[0]?.number]));
   const [expandedCodeQL, setExpandedCodeQL] = useState<Set<number>>(new Set([code_scanning_alerts[0]?.number]));
+  const [expandedPRs, setExpandedPRs] = useState<Set<number>>(new Set([pullRequests[0]?.number]));
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const toggleDependabot = (alertNumber: number) => {
@@ -49,6 +54,15 @@ export const AlertPage: React.FC<AlertPageProps> = ({ summary, onBack }) => {
       const next = new Set(prev);
       if (next.has(alertNumber)) next.delete(alertNumber);
       else next.add(alertNumber);
+      return next;
+    });
+  };
+
+  const togglePR = (prNumber: number) => {
+    setExpandedPRs((prev) => {
+      const next = new Set(prev);
+      if (next.has(prNumber)) next.delete(prNumber);
+      else next.add(prNumber);
       return next;
     });
   };
@@ -172,6 +186,27 @@ export const AlertPage: React.FC<AlertPageProps> = ({ summary, onBack }) => {
           <span className="px-2 py-0.5 rounded-full bg-gh-canvas-subtle border border-gh-border-default text-xs font-mono">
             {code_scanning_alerts.length}
           </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('pull_requests')}
+          className={`flex items-center space-x-2 pb-3 px-4 text-xs font-semibold border-b-2 transition-colors ${
+            activeTab === 'pull_requests'
+              ? 'border-gh-accent-fg text-gh-fg-default'
+              : 'border-transparent text-gh-fg-muted hover:text-gh-fg-default'
+          }`}
+        >
+          <GitPullRequest className="w-4 h-4 text-gh-accent-fg" />
+          <span>Pull Requests</span>
+          <span className="px-2 py-0.5 rounded-full bg-gh-canvas-subtle border border-gh-border-default text-xs font-mono">
+            {pullRequests.length}
+          </span>
+          {summary.has_pr_conflicts && (
+            <span
+              title="Merge conflicts detected in open PRs"
+              className="w-2 h-2 rounded-full bg-gh-warning-fg"
+            />
+          )}
         </button>
 
         <button
@@ -507,7 +542,212 @@ export const AlertPage: React.FC<AlertPageProps> = ({ summary, onBack }) => {
           </div>
         )}
 
-        {/* 3. Pages & Builds Tab */}
+        {/* 3. Pull Requests Tab */}
+        {activeTab === 'pull_requests' && (
+          <div className="space-y-3">
+            {pullRequests.length === 0 ? (
+              <div className="p-12 text-center rounded-xl border border-gh-border-default bg-gh-canvas-subtle">
+                <CheckCircle2 className="w-10 h-10 text-gh-success-fg mx-auto mb-3" />
+                <h3 className="text-sm font-semibold text-gh-fg-default">No Open Pull Requests</h3>
+                <p className="text-xs text-gh-fg-muted mt-1 max-w-md mx-auto">
+                  There are currently no open pull requests pending review or merge for this repository.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                <div className="text-xs text-gh-fg-muted flex items-center justify-between pb-1">
+                  <span>Showing {pullRequests.length} open pull requests. Click any PR to inspect review status:</span>
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => setExpandedPRs(new Set(pullRequests.map((p) => p.number)))}
+                      className="text-gh-accent-fg hover:underline"
+                    >
+                      Expand All
+                    </button>
+                    <span>·</span>
+                    <button
+                      onClick={() => setExpandedPRs(new Set())}
+                      className="text-gh-accent-fg hover:underline"
+                    >
+                      Collapse All
+                    </button>
+                  </div>
+                </div>
+
+                {pullRequests.map((pr) => {
+                  const isExpanded = expandedPRs.has(pr.number);
+
+                  return (
+                    <div
+                      key={pr.id}
+                      className={`rounded-xl border transition-all overflow-hidden ${
+                        isExpanded
+                          ? 'bg-gh-canvas-subtle border-gh-border-default shadow-sm'
+                          : 'bg-gh-canvas-subtle/70 border-gh-border-muted hover:border-gh-border-default'
+                      }`}
+                    >
+                      {/* Accordion Row Header */}
+                      <div
+                        onClick={() => togglePR(pr.number)}
+                        className="p-4 flex items-start sm:items-center justify-between gap-3 cursor-pointer select-none group"
+                      >
+                        <div className="flex items-start sm:items-center space-x-3 min-w-0">
+                          <button className="text-gh-fg-muted group-hover:text-gh-fg-default mt-0.5 sm:mt-0 flex-shrink-0 transition-transform">
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-gh-fg-default" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </button>
+
+                          <div className="p-1.5 rounded-md bg-gh-canvas-default border border-gh-border-default flex-shrink-0">
+                            <GitPullRequest
+                              className={`w-4 h-4 ${
+                                pr.draft
+                                  ? 'text-gh-fg-muted'
+                                  : pr.has_conflicts
+                                  ? 'text-gh-warning-fg'
+                                  : 'text-gh-success-fg'
+                              }`}
+                            />
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                              <span className="font-semibold text-xs text-gh-fg-default group-hover:text-gh-accent-fg transition-colors">
+                                {pr.title}
+                              </span>
+                              <span className="text-[11px] font-mono text-gh-fg-muted">
+                                #{pr.number}
+                              </span>
+
+                              {/* Draft pill */}
+                              {pr.draft && (
+                                <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-gh-canvas-default text-gh-fg-muted border border-gh-border-default">
+                                  Draft
+                                </span>
+                              )}
+
+                              {/* Conflict / Mergeable pill */}
+                              {pr.has_conflicts ? (
+                                <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold font-mono bg-gh-warning-subtle text-gh-warning-fg border border-gh-warning-fg/40">
+                                  <AlertCircle className="w-2.5 h-2.5" />
+                                  <span>Merge Conflict</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.2 rounded text-[10px] font-semibold font-mono bg-gh-success-subtle text-gh-success-fg border border-gh-success-fg/30">
+                                  <CheckCircle2 className="w-2.5 h-2.5" />
+                                  <span>Clean</span>
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center space-x-2 text-[11px] text-gh-fg-muted mt-1 font-mono flex-wrap">
+                              <span>opened by <strong className="text-gh-fg-default">{pr.user.login}</strong></span>
+                              <span>·</span>
+                              <span className="text-gh-accent-fg">{pr.head.ref}</span>
+                              <span>→</span>
+                              <span>{pr.base.ref}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <a
+                          href={pr.html_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center space-x-1 px-3 py-1 text-xs font-semibold rounded bg-gh-canvas-default hover:bg-gh-border-muted border border-gh-border-default text-gh-fg-default transition-colors shadow-sm flex-shrink-0"
+                          title="Open Pull Request on GitHub"
+                        >
+                          <span>Review on GitHub</span>
+                          <ExternalLink className="w-3 h-3 text-gh-fg-muted" />
+                        </a>
+                      </div>
+
+                      {/* Expanded Pull Request details */}
+                      {isExpanded && (
+                        <div className="px-5 pb-5 pt-2 border-t border-gh-border-muted/60 space-y-3.5 text-xs bg-gh-canvas-default/50 animate-in fade-in duration-150">
+                          {/* Branch mapping & Git command copy */}
+                          <div className="p-3.5 rounded-lg bg-gh-canvas-subtle border border-gh-border-muted flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                            <div className="flex items-center space-x-2 text-xs font-mono min-w-0">
+                              <GitMerge className="w-4 h-4 text-gh-purple-fg flex-shrink-0" />
+                              <span className="text-gh-fg-muted">Merge target:</span>
+                              <span className="px-1.5 py-0.5 rounded bg-gh-canvas-default border border-gh-border-default text-gh-fg-default font-bold">
+                                {pr.base.ref}
+                              </span>
+                              <span className="text-gh-fg-muted">← from branch:</span>
+                              <span className="px-1.5 py-0.5 rounded bg-gh-canvas-default border border-gh-border-default text-gh-accent-fg font-bold truncate max-w-[240px]">
+                                {pr.head.ref}
+                              </span>
+                            </div>
+
+                            <button
+                              onClick={() => handleCopy(`git checkout ${pr.head.ref}`)}
+                              className="inline-flex items-center space-x-1 px-2.5 py-1 text-[11px] font-mono rounded bg-gh-canvas-default hover:bg-gh-border-muted border border-gh-border-default text-gh-fg-muted hover:text-gh-fg-default transition-colors self-start sm:self-auto"
+                              title="Copy git checkout branch command"
+                            >
+                              {copiedId === `git checkout ${pr.head.ref}` ? (
+                                <>
+                                  <Check className="w-3 h-3 text-gh-success-fg" />
+                                  <span className="text-gh-success-fg font-semibold">Copied command</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3 h-3" />
+                                  <span>git checkout</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {/* Labels */}
+                          {pr.labels && pr.labels.length > 0 && (
+                            <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                              <span className="text-[11px] text-gh-fg-muted font-medium">Labels:</span>
+                              {pr.labels.map((l) => (
+                                <span
+                                  key={l.id}
+                                  className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium border"
+                                  style={{
+                                    backgroundColor: `#${l.color}15`,
+                                    borderColor: `#${l.color}50`,
+                                    color: `#${l.color}`,
+                                  }}
+                                >
+                                  {l.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Action footer */}
+                          <div className="flex items-center justify-between pt-2 border-t border-gh-border-muted/60 text-xs">
+                            <span className="text-[11px] text-gh-fg-muted font-mono">
+                              Created: {new Date(pr.created_at).toLocaleDateString()} · Updated: {new Date(pr.updated_at).toLocaleDateString()}
+                            </span>
+
+                            <a
+                              href={pr.html_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-gh-accent-emphasis hover:bg-blue-600 text-white transition-colors shadow-sm"
+                            >
+                              <span>Inspect and Merge on GitHub</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 4. Pages & Builds Tab */}
         {activeTab === 'pages' && (
           <div className="space-y-4">
             {!features.pages_enabled ? (

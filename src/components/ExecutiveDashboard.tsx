@@ -11,6 +11,8 @@ import {
   ChevronRight,
   Activity,
   Lock,
+  GitPullRequest,
+  AlertCircle,
 } from 'lucide-react';
 
 export const ExecutiveDashboard: React.FC = () => {
@@ -29,17 +31,21 @@ export const ExecutiveDashboard: React.FC = () => {
   // Grade: A (>=90%), B (>=75%), C (>=50%), D (<50%)
   const healthGrade = cleanPercentage >= 90 ? 'A' : cleanPercentage >= 75 ? 'B' : cleanPercentage >= 50 ? 'C' : 'D';
 
-  // Only repositories that have active security alerts or failing builds
+  // Only repositories that have active security alerts, failing builds, or merge conflicts
   const attentionRepos = healthSummaries.filter(
     (s) =>
       s.critical_count > 0 ||
       s.high_count > 0 ||
       s.code_scanning_error_count > 0 ||
       s.code_scanning_warning_count > 0 ||
-      s.features.pages_status === 'errored'
+      s.features.pages_status === 'errored' ||
+      s.has_pr_conflicts
   ).sort((a, b) => {
     const score = (s: typeof a) =>
-      s.critical_count * 1000 + s.high_count * 100 + s.code_scanning_error_count * 50;
+      s.critical_count * 1000 +
+      s.high_count * 100 +
+      s.code_scanning_error_count * 50 +
+      (s.has_pr_conflicts ? 30 : 0);
     return score(b) - score(a);
   });
 
@@ -108,7 +114,7 @@ export const ExecutiveDashboard: React.FC = () => {
       </div>
 
       {/* 2. Big Executive Telemetry Cards (Large numbers legible on TV / Mobile) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Card 1: Repository Health Ratio */}
         <div className="p-5 rounded-xl bg-gh-canvas-subtle border border-gh-border-default shadow-sm space-y-2">
           <div className="flex items-center justify-between text-gh-fg-muted text-xs font-semibold uppercase tracking-wider">
@@ -177,7 +183,32 @@ export const ExecutiveDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 4: Pages Deployments */}
+        {/* Card 4: Pull Requests Telemetry */}
+        <div className="p-5 rounded-xl bg-gh-canvas-subtle border border-gh-border-default shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-gh-fg-muted text-xs font-semibold uppercase tracking-wider">
+            <span>Pull Requests</span>
+            <GitPullRequest className="w-4 h-4 text-gh-accent-fg" />
+          </div>
+          <div className="flex items-baseline space-x-2">
+            <span className="text-3xl sm:text-4xl font-extrabold font-mono text-gh-fg-default">
+              {metrics.total_open_prs}
+            </span>
+            <span className="text-xs text-gh-fg-muted font-mono">Open PRs</span>
+          </div>
+          <div className="flex items-center justify-between text-xs text-gh-fg-muted pt-2 border-t border-gh-border-muted/60 font-mono">
+            {healthSummaries.filter(s => s.has_pr_conflicts).length > 0 ? (
+              <span className="text-gh-warning-fg font-semibold flex items-center space-x-1">
+                <AlertCircle className="w-3 h-3" />
+                <span>{healthSummaries.filter(s => s.has_pr_conflicts).length} with conflicts</span>
+              </span>
+            ) : (
+              <span className="text-gh-success-fg">All Mergeable</span>
+            )}
+            <span>Pending Review</span>
+          </div>
+        </div>
+
+        {/* Card 5: Pages Deployments */}
         <div className="p-5 rounded-xl bg-gh-canvas-subtle border border-gh-border-default shadow-sm space-y-2">
           <div className="flex items-center justify-between text-gh-fg-muted text-xs font-semibold uppercase tracking-wider">
             <span>Pages & Deployments</span>
@@ -284,6 +315,16 @@ export const ExecutiveDashboard: React.FC = () => {
                           Build Failed
                         </span>
                       )}
+                      {item.has_pr_conflicts ? (
+                        <span className="px-2 py-0.5 rounded text-xs font-bold font-mono bg-gh-warning-subtle text-gh-warning-fg border border-gh-warning-fg/40 flex items-center space-x-1">
+                          <AlertCircle className="w-3 h-3" />
+                          <span>PR Conflict</span>
+                        </span>
+                      ) : item.open_pr_count > 0 ? (
+                        <span className="px-2 py-0.5 rounded text-xs font-mono font-medium bg-gh-canvas-subtle text-gh-fg-muted border border-gh-border-default">
+                          {item.open_pr_count} PR{item.open_pr_count > 1 ? 's' : ''}
+                        </span>
+                      ) : null}
 
                       <ChevronRight className="w-4 h-4 text-gh-fg-muted group-hover:text-gh-fg-default group-hover:translate-x-0.5 transition-all" />
                     </div>

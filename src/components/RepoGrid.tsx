@@ -14,6 +14,8 @@ import {
   Code2,
   Package,
   Flame,
+  GitPullRequest,
+  AlertCircle,
 } from 'lucide-react';
 
 export const RepoGrid: React.FC = () => {
@@ -38,6 +40,7 @@ export const RepoGrid: React.FC = () => {
     if (filterStatus === 'warning') return item.health_status === 'warning';
     if (filterStatus === 'healthy') return item.health_status === 'healthy';
     if (filterStatus === 'pages') return item.features.pages_enabled;
+    if (filterStatus === 'prs') return item.open_pr_count > 0;
 
     return true;
   });
@@ -57,6 +60,9 @@ export const RepoGrid: React.FC = () => {
       const totalAlerts = (s: RepoHealthSummary) =>
         s.dependabot_alerts.length + s.code_scanning_alerts.length;
       return totalAlerts(b) - totalAlerts(a);
+    }
+    if (sortBy === 'prs') {
+      return (b.open_pr_count || 0) - (a.open_pr_count || 0);
     }
     if (sortBy === 'pages') {
       const pageRank = (s: RepoHealthSummary) =>
@@ -200,7 +206,7 @@ const RepoDashboardCard: React.FC<{
 
         {/* Severity Metrics Bar */}
         <div className="pt-2 border-t border-gh-border-muted/40">
-          {totalVulnerabilities > 0 || code_scanning_error_count > 0 || code_scanning_warning_count > 0 || features.pages_status === 'errored' ? (
+          {totalVulnerabilities > 0 || code_scanning_error_count > 0 || code_scanning_warning_count > 0 || features.pages_status === 'errored' || summary.open_pr_count > 0 ? (
             <div className="space-y-1.5">
               {/* Dependabot Pills */}
               {totalVulnerabilities > 0 && (
@@ -242,6 +248,28 @@ const RepoDashboardCard: React.FC<{
                   {code_scanning_warning_count > 0 && (
                     <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold font-mono bg-gh-warning-subtle text-gh-warning-fg border border-gh-warning-fg/30">
                       {code_scanning_warning_count} Warning
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Pull Requests Alert */}
+              {summary.open_pr_count > 0 && (
+                <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                  <span className="text-[11px] text-gh-fg-muted font-medium flex items-center space-x-1">
+                    <GitPullRequest className="w-3 h-3 text-gh-accent-fg" />
+                    <span>PRs:</span>
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold font-mono bg-gh-canvas-default text-gh-fg-default border border-gh-border-default">
+                    {summary.open_pr_count} Open
+                  </span>
+                  {summary.has_pr_conflicts && (
+                    <span
+                      title="Merge conflicts detected in open pull requests"
+                      className="px-1.5 py-0.2 rounded text-[10px] font-bold font-mono bg-gh-warning-subtle text-gh-warning-fg border border-gh-warning-fg/40 flex items-center space-x-0.5"
+                    >
+                      <AlertCircle className="w-2.5 h-2.5" />
+                      <span>Conflict</span>
                     </span>
                   )}
                 </div>

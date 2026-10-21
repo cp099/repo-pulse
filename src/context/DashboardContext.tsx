@@ -15,9 +15,10 @@ import {
 } from '../services/firebase';
 import { scanRepositoryHealth, fetchUserRepositories, getRateLimitInfo, RateLimitInfo } from '../services/githubApi';
 
-export type SortOption = 'severity' | 'alerts' | 'name' | 'pages';
+export type SortOption = 'severity' | 'alerts' | 'prs' | 'name' | 'pages';
 export type ViewMode = 'grid' | 'table';
 export type ActiveTab = 'dashboard' | 'repositories';
+export type FilterStatus = 'all' | 'critical' | 'warning' | 'healthy' | 'pages' | 'prs';
 
 interface DashboardContextType {
   currentUser: User | null;
@@ -42,8 +43,8 @@ interface DashboardContextType {
   rateLimit: RateLimitInfo;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
-  filterStatus: 'all' | 'critical' | 'warning' | 'healthy' | 'pages';
-  setFilterStatus: (f: 'all' | 'critical' | 'warning' | 'healthy' | 'pages') => void;
+  filterStatus: FilterStatus;
+  setFilterStatus: (f: FilterStatus) => void;
   sortBy: SortOption;
   setSortBy: (s: SortOption) => void;
   viewMode: ViewMode;
@@ -90,7 +91,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Filters & Sorting & View Mode
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'critical' | 'warning' | 'healthy' | 'pages'>('all');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [sortBy, setSortBy] = useState<SortOption>('severity');
   const [viewMode, setViewModeState] = useState<ViewMode>(() => {
     try {
@@ -284,6 +285,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     let totalMed = 0;
     let totalCodeErrors = 0;
     let failingPages = 0;
+    let totalOpenPRs = 0;
     let healthyCount = 0;
     let warningCount = 0;
     let criticalCount = 0;
@@ -293,6 +295,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       totalHigh += item.high_count;
       totalMed += item.medium_count;
       totalCodeErrors += item.code_scanning_error_count;
+      totalOpenPRs += (item.open_pr_count || 0);
       if (item.features.pages_status === 'errored') failingPages++;
 
       if (item.health_status === 'critical') criticalCount++;
@@ -309,6 +312,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       total_high_alerts: totalHigh,
       total_medium_alerts: totalMed,
       total_code_scanning_errors: totalCodeErrors,
+      total_open_prs: totalOpenPRs,
       failing_pages_count: failingPages,
       last_updated: lastRefreshed ? lastRefreshed.toLocaleTimeString() : 'Never',
     };
