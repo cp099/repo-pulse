@@ -8,7 +8,7 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const { config, updateConfig, setDemoMode, refreshNow } = useDashboard();
+  const { config, updateConfig, refreshNow } = useDashboard();
 
   const [token, setToken] = useState(config.githubToken || '');
   const [interval, setInterval] = useState(config.autoRefreshInterval || 120000);
@@ -42,13 +42,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       onClose();
       refreshNow();
     }, 600);
-  };
-
-  const handleSwitchToDemo = () => {
-    setDemoMode(true);
-    setToken('');
-    updateConfig({ githubToken: '' });
-    onClose();
   };
 
   return (
@@ -179,20 +172,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 </div>
               </div>
             )}
-          </div>
-
-          {/* 4. Demo Mode Toggle */}
-          <div className="pt-2 border-t border-gh-border-muted flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold text-gh-fg-default">Demo / Preview Mode</span>
-              <p className="text-[11px] text-gh-fg-muted">Reset credentials and preview sample repositories</p>
-            </div>
-            <button
-              onClick={handleSwitchToDemo}
-              className="px-2.5 py-1 text-xs font-medium rounded border border-gh-border-default hover:bg-gh-canvas-default text-gh-fg-muted hover:text-gh-fg-default transition-colors"
-            >
-              Load Demo Data
-            </button>
           </div>
         </div>
 

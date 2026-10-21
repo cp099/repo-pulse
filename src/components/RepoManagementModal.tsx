@@ -29,7 +29,6 @@ export const RepoManagementModal: React.FC<RepoManagementModalProps> = ({ isOpen
     isLoadingRepos,
     fetchAvailableRepos,
     refreshNow,
-    isDemoMode,
   } = useDashboard();
 
   const [selected, setSelected] = useState<string[]>(config.monitoredRepos || []);
@@ -49,7 +48,7 @@ export const RepoManagementModal: React.FC<RepoManagementModalProps> = ({ isOpen
 
   // Probe features for visible repositories
   const probeFeaturesForRepos = async () => {
-    if (isDemoMode || !config.githubToken) return;
+    if (!config.githubToken) return;
     setProbingFeatures(true);
     const newMap: Record<string, RepoFeatures> = { ...repoFeaturesMap };
 
@@ -166,7 +165,7 @@ export const RepoManagementModal: React.FC<RepoManagementModalProps> = ({ isOpen
               <span>Only Enabled Features</span>
             </button>
 
-            {!isDemoMode && config.githubToken && (
+            {config.githubToken && (
               <button
                 onClick={probeFeaturesForRepos}
                 disabled={probingFeatures}
@@ -231,7 +230,7 @@ export const RepoManagementModal: React.FC<RepoManagementModalProps> = ({ isOpen
                       {isChecked ? (
                         <CheckSquare className="w-4 h-4 text-gh-accent-fg" />
                       ) : (
-                        <Square className="w-4 h-4 text-gh-fg-muted" />
+                        <Square className="w-4 h-4 text-gh-muted" />
                       )}
                     </button>
 
@@ -298,7 +297,7 @@ export const RepoManagementModal: React.FC<RepoManagementModalProps> = ({ isOpen
         {/* Footer */}
         <div className="p-4 border-t border-gh-border-default bg-gh-canvas-default rounded-b-xl flex items-center justify-between">
           <span className="text-xs text-gh-fg-muted">
-            {isDemoMode && 'Demo mode is active. Add your GitHub PAT in Settings for your real repositories.'}
+            Select repositories to monitor their security alerts and build deployments.
           </span>
           <div className="flex items-center space-x-2">
             <button

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useDashboard } from '../context/DashboardContext';
 import {
   RefreshCw,
@@ -6,9 +6,8 @@ import {
   FolderGit2,
   ShieldAlert,
   Zap,
-  LogIn,
   LogOut,
-  Sparkles,
+  Key,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -19,9 +18,8 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSettings }) => {
   const {
     currentUser,
-    loginWithGitHub,
+    config,
     logout,
-    isDemoMode,
     isScanning,
     scanProgress,
     refreshNow,
@@ -29,19 +27,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
     lastRefreshed,
     authError,
   } = useDashboard();
-
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-
-  const handleGitHubLogin = async () => {
-    setIsLoggingIn(true);
-    try {
-      await loginWithGitHub();
-    } catch {
-      // Error handled in context
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
 
   return (
     <header className="border-b border-gh-border-default bg-gh-canvas-subtle sticky top-0 z-30">
@@ -56,14 +41,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
               <div className="flex items-center space-x-2">
                 <span className="font-semibold text-base text-gh-fg-default tracking-tight">RepoPulse</span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-gh-accent-subtle text-gh-accent-fg border border-gh-accent-emphasis/30">
-                  v1.1
+                  v1.2
                 </span>
-                {isDemoMode && !currentUser && (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-gh-warning-subtle text-gh-warning-fg border border-gh-warning-fg/30 flex items-center space-x-1">
-                    <Sparkles className="w-2.5 h-2.5" />
-                    <span>Demo Mode</span>
-                  </span>
-                )}
               </div>
             </div>
           </div>
@@ -113,46 +92,30 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
               <span>Track Repos</span>
             </button>
 
-            {/* User Auth Profile or 1-Click Login Button */}
-            {currentUser ? (
-              <div className="flex items-center space-x-2 pl-1 border-l border-gh-border-default">
-                {currentUser.photoURL ? (
-                  <img
-                    src={currentUser.photoURL}
-                    alt={currentUser.displayName || 'GitHub User'}
-                    className="w-7 h-7 rounded-full border border-gh-border-default ring-1 ring-gh-accent-emphasis/30"
-                  />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-gh-canvas-default border border-gh-border-default flex items-center justify-center text-xs font-bold text-gh-accent-fg">
-                    {currentUser.displayName ? currentUser.displayName[0] : 'U'}
-                  </div>
-                )}
-                <span className="text-xs font-medium text-gh-fg-default hidden sm:inline max-w-[100px] truncate">
-                  {currentUser.displayName || 'GitHub User'}
-                </span>
-                <button
-                  onClick={logout}
-                  className="p-1 rounded text-gh-fg-muted hover:text-gh-danger-fg hover:bg-gh-canvas-default transition-colors"
-                  title="Sign out of GitHub"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
+            {/* User Auth Profile */}
+            <div className="flex items-center space-x-2 pl-1 border-l border-gh-border-default">
+              {currentUser?.photoURL ? (
+                <img
+                  src={currentUser.photoURL}
+                  alt={currentUser.displayName || 'GitHub User'}
+                  className="w-7 h-7 rounded-full border border-gh-border-default ring-1 ring-gh-accent-emphasis/30"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-gh-canvas-default border border-gh-border-default flex items-center justify-center text-xs font-bold text-gh-accent-fg">
+                  {currentUser?.displayName ? currentUser.displayName[0] : <Key className="w-3.5 h-3.5 text-gh-accent-fg" />}
+                </div>
+              )}
+              <span className="text-xs font-medium text-gh-fg-default hidden sm:inline max-w-[110px] truncate">
+                {currentUser?.displayName || (config.githubToken ? 'Connected via PAT' : 'User')}
+              </span>
               <button
-                onClick={handleGitHubLogin}
-                disabled={isLoggingIn}
-                className="inline-flex items-center space-x-1.5 px-3 py-1 text-xs font-semibold rounded-md bg-[#238636] hover:bg-[#2ea043] text-white transition-colors shadow-sm"
-                title="Sign in with GitHub OAuth (Instant 1-click onboarding)"
+                onClick={logout}
+                className="p-1 rounded text-gh-fg-muted hover:text-gh-danger-fg hover:bg-gh-canvas-default transition-colors"
+                title="Sign out / Disconnect"
               >
-                {isLoggingIn ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <LogIn className="w-3.5 h-3.5" />
-                )}
-                <span>Sign in with GitHub</span>
+                <LogOut className="w-3.5 h-3.5" />
               </button>
-            )}
+            </div>
 
             {/* Settings */}
             <button
@@ -169,7 +132,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
         {authError && (
           <div className="py-1.5 px-3 mb-2 rounded bg-gh-danger-subtle border border-gh-danger-fg/40 text-xs text-gh-danger-fg flex items-center justify-between">
             <span>{authError}</span>
-            <button onClick={() => {}} className="text-gh-danger-fg font-bold ml-2">×</button>
           </div>
         )}
       </div>

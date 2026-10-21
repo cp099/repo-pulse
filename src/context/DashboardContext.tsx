@@ -14,19 +14,17 @@ import {
   isFirebaseConfigured,
 } from '../services/firebase';
 import { scanRepositoryHealth, fetchUserRepositories, getRateLimitInfo, RateLimitInfo } from '../services/githubApi';
-import { MOCK_HEALTH_SUMMARIES, MOCK_REPOSITORIES } from '../services/mockData';
 
 export type SortOption = 'severity' | 'alerts' | 'name' | 'pages';
 
 interface DashboardContextType {
   currentUser: User | null;
+  isAuthenticated: boolean;
   loginWithGitHub: () => Promise<void>;
   logout: () => Promise<void>;
   isFirebaseReady: boolean;
   config: UserConfig;
   updateConfig: (newConfig: Partial<UserConfig>) => void;
-  isDemoMode: boolean;
-  setDemoMode: (demo: boolean) => void;
   healthSummaries: RepoHealthSummary[];
   selectedSummary: RepoHealthSummary | null;
   setSelectedSummary: (summary: RepoHealthSummary | null) => void;
@@ -55,16 +53,13 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [config, setConfigState] = useState<UserConfig>(getLocalConfig);
-  const [isDemoMode, setDemoMode] = useState<boolean>(!config.githubToken);
   const [healthSummaries, setHealthSummaries] = useState<RepoHealthSummary[]>(() => {
-    const cached = getLocalHealthCache();
-    if (cached && cached.length > 0) return cached;
-    return MOCK_HEALTH_SUMMARIES;
+    return getLocalHealthCache() || [];
   });
   const [selectedSummary, setSelectedSummary] = useState<RepoHealthSummary | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [scanProgress, setScanProgress] = useState({ current: 0, total: 0, repoName: '' });
-  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(new Date());
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [rateLimit, setRateLimit] = useState<RateLimitInfo>(getRateLimitInfo());
   const [availableRepos, setAvailableRepos] = useState<Repository[]>([]);
   const [isLoadingRepos, setIsLoadingRepos] = useState<boolean>(false);
@@ -74,7 +69,17 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [filterStatus, setFilterStatus] = useState<'all' | 'critical' | 'warning' | 'healthy' | 'pages'>('all');
   const [sortBy, setSortBy] = useState<SortOption>('severity');
 
-  // Track Firebase Auth state
+  const isAuthenticated = !!currentUser || !!config.githubToken;
+
+  const updateConfig = useCallback((newConfig: Partial<UserConfig>) => {
+    setConfigState(prev => {
+      const updated = { ...prev, ...newConfig };
+      saveLocalConfig(updated);
+      return updated;
+    });
+  }, []);
+
+  // Track Firebase Auth state & load cloud data
   useEffect(() => {
     const unsubscribe = subscribeToAuth(async (user) => {
       setCurrentUser(user);
@@ -91,24 +96,13 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
           if (cloudData.summaries && cloudData.summaries.length > 0) {
             setHealthSummaries(cloudData.summaries);
-            setDemoMode(false);
+            setLastRefreshed(new Date());
           }
         }
       }
     });
     return () => unsubscribe();
   }, []);
-
-  const updateConfig = useCallback((newConfig: Partial<UserConfig>) => {
-    setConfigState(prev => {
-      const updated = { ...prev, ...newConfig };
-      saveLocalConfig(updated);
-      if (updated.githubToken && isDemoMode) {
-        setDemoMode(false);
-      }
-      return updated;
-    });
-  }, [isDemoMode]);
 
   // 1-Click Sign in with GitHub
   const loginWithGitHub = useCallback(async () => {
@@ -118,7 +112,6 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setCurrentUser(user);
       if (githubToken) {
         updateConfig({ githubToken });
-        setDemoMode(false);
       }
     } catch (err: any) {
       console.error('GitHub Sign-In error:', err);
@@ -131,15 +124,15 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const logout = useCallback(async () => {
     await signOutUser();
     setCurrentUser(null);
-    setDemoMode(true);
-    updateConfig({ githubToken: '' });
+    setHealthSummaries([]);
+    updateConfig({ githubToken: '', monitoredRepos: [] });
+    saveLocalHealthCache([]);
   }, [updateConfig]);
 
   // Load available user repositories
   const fetchAvailableRepos = useCallback(async (): Promise<Repository[]> => {
-    if (isDemoMode || !config.githubToken) {
-      setAvailableRepos(MOCK_REPOSITORIES);
-      return MOCK_REPOSITORIES;
+    if (!config.githubToken) {
+      return [];
     }
 
     setIsLoadingRepos(true);
@@ -147,6 +140,13 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const repos = await fetchUserRepositories(config.githubToken);
       setAvailableRepos(repos);
       setRateLimit(getRateLimitInfo());
+
+      // If user has no monitored repos configured yet, auto-select their top repositories
+      if (config.monitoredRepos.length === 0 && repos.length > 0) {
+        const initialTracked = repos.slice(0, 15).map(r => r.full_name);
+        updateConfig({ monitoredRepos: initialTracked });
+      }
+
       return repos;
     } catch (err) {
       console.error('Failed to load user repositories:', err);
@@ -154,26 +154,11 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } finally {
       setIsLoadingRepos(false);
     }
-  }, [isDemoMode, config.githubToken]);
+  }, [config.githubToken, config.monitoredRepos.length, updateConfig]);
 
   // Refresh health data for all monitored repos
   const refreshNow = useCallback(async () => {
-    if (isScanning) return;
-
-    if (isDemoMode || !config.githubToken) {
-      setIsScanning(true);
-      setScanProgress({ current: 1, total: MOCK_HEALTH_SUMMARIES.length, repoName: 'Simulating refresh...' });
-      await new Promise(r => setTimeout(r, 600));
-      setHealthSummaries(MOCK_HEALTH_SUMMARIES);
-      setLastRefreshed(new Date());
-      setIsScanning(false);
-      return;
-    }
-
-    if (config.monitoredRepos.length === 0) {
-      setHealthSummaries([]);
-      return;
-    }
+    if (isScanning || !config.githubToken) return;
 
     setIsScanning(true);
     const results: RepoHealthSummary[] = [];
@@ -186,15 +171,30 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const reposToScan = reposList.filter(r => config.monitoredRepos.includes(r.full_name));
     const total = reposToScan.length;
 
-    for (let i = 0; i < total; i++) {
-      const repo = reposToScan[i];
-      setScanProgress({ current: i + 1, total, repoName: repo.full_name });
+    if (total === 0 && reposList.length > 0) {
+      // Auto-scan first repos if none explicitly selected
+      const defaultRepos = reposList.slice(0, 15);
+      for (let i = 0; i < defaultRepos.length; i++) {
+        const repo = defaultRepos[i];
+        setScanProgress({ current: i + 1, total: defaultRepos.length, repoName: repo.full_name });
+        try {
+          const summary = await scanRepositoryHealth(repo, config.githubToken);
+          results.push(summary);
+        } catch (err) {
+          console.warn(`Failed scanning health for ${repo.full_name}:`, err);
+        }
+      }
+    } else {
+      for (let i = 0; i < total; i++) {
+        const repo = reposToScan[i];
+        setScanProgress({ current: i + 1, total, repoName: repo.full_name });
 
-      try {
-        const summary = await scanRepositoryHealth(repo, config.githubToken);
-        results.push(summary);
-      } catch (err) {
-        console.warn(`Failed scanning health for ${repo.full_name}:`, err);
+        try {
+          const summary = await scanRepositoryHealth(repo, config.githubToken);
+          results.push(summary);
+        } catch (err) {
+          console.warn(`Failed scanning health for ${repo.full_name}:`, err);
+        }
       }
     }
 
@@ -207,21 +207,27 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (currentUser) {
       syncHealthToCloud(currentUser.uid, config.monitoredRepos, results);
     }
-  }, [isScanning, isDemoMode, config.githubToken, config.monitoredRepos, availableRepos, fetchAvailableRepos, currentUser]);
+  }, [isScanning, config.githubToken, config.monitoredRepos, availableRepos, fetchAvailableRepos, currentUser]);
+
+  // When token becomes available and we don't have summaries, trigger initial scan
+  useEffect(() => {
+    if (config.githubToken && healthSummaries.length === 0 && !isScanning) {
+      refreshNow();
+    }
+  }, [config.githubToken]);
 
   // Auto-refresh interval
   useEffect(() => {
-    if (config.autoRefreshInterval <= 0) return;
+    if (config.autoRefreshInterval <= 0 || !config.githubToken) return;
     const interval = setInterval(() => {
       refreshNow();
     }, config.autoRefreshInterval);
 
     return () => clearInterval(interval);
-  }, [config.autoRefreshInterval, refreshNow]);
+  }, [config.autoRefreshInterval, config.githubToken, refreshNow]);
 
   // Calculate global summary metrics
   const metrics = useMemo<GlobalMetrics>(() => {
-    const list = isDemoMode ? MOCK_HEALTH_SUMMARIES : healthSummaries;
     let totalCrit = 0;
     let totalHigh = 0;
     let totalMed = 0;
@@ -231,7 +237,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     let warningCount = 0;
     let criticalCount = 0;
 
-    list.forEach(item => {
+    healthSummaries.forEach(item => {
       totalCrit += item.critical_count;
       totalHigh += item.high_count;
       totalMed += item.medium_count;
@@ -244,7 +250,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
 
     return {
-      total_tracked_repos: list.length,
+      total_tracked_repos: healthSummaries.length,
       healthy_repos_count: healthyCount,
       warning_repos_count: warningCount,
       critical_repos_count: criticalCount,
@@ -255,20 +261,19 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       failing_pages_count: failingPages,
       last_updated: lastRefreshed ? lastRefreshed.toLocaleTimeString() : 'Never',
     };
-  }, [healthSummaries, isDemoMode, lastRefreshed]);
+  }, [healthSummaries, lastRefreshed]);
 
   return (
     <DashboardContext.Provider
       value={{
         currentUser,
+        isAuthenticated,
         loginWithGitHub,
         logout,
         isFirebaseReady: isFirebaseConfigured(),
         config,
         updateConfig,
-        isDemoMode,
-        setDemoMode,
-        healthSummaries: isDemoMode ? MOCK_HEALTH_SUMMARIES : healthSummaries,
+        healthSummaries,
         selectedSummary,
         setSelectedSummary,
         metrics,
