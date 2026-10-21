@@ -12,7 +12,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   const [token, setToken] = useState(config.githubToken || '');
   const [interval, setInterval] = useState(config.autoRefreshInterval || 120000);
-  const [useFirebase, setUseFirebase] = useState(config.useFirebaseSync || false);
+  const useFirebase = true;
   const [firebaseApiKey, setFirebaseApiKey] = useState(config.firebaseConfig?.apiKey || '');
   const [firebaseProjectId, setFirebaseProjectId] = useState(config.firebaseConfig?.projectId || '');
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -139,20 +139,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           <div className="space-y-3 pt-2 border-t border-gh-border-muted">
             <div className="flex items-center justify-between">
               <div>
-                <label className="text-xs font-semibold text-gh-fg-default flex items-center space-x-1.5">
-                  <Cloud className="w-3.5 h-3.5 text-gh-accent-fg" />
-                  <span>Firebase Multi-Device Cloud Sync</span>
-                </label>
+                <div className="flex items-center space-x-2">
+                  <label className="text-xs font-semibold text-gh-fg-default flex items-center space-x-1.5">
+                    <Cloud className="w-3.5 h-3.5 text-gh-accent-fg" />
+                    <span>Firebase Multi-Device Cloud Sync</span>
+                  </label>
+                  <span className="inline-flex items-center space-x-1 px-1.5 py-0.2 rounded text-[10px] font-mono bg-gh-success-subtle text-gh-success-fg border border-gh-success-fg/30">
+                    <CheckCircle2 className="w-2.5 h-2.5" />
+                    <span>Connected (repopulse-app-71baa)</span>
+                  </span>
+                </div>
                 <p className="text-[11px] text-gh-fg-muted mt-0.5">
                   Sync your monitored repositories and alert snapshots to Firestore so your phone and laptop stay identical.
                 </p>
               </div>
-              <input
-                type="checkbox"
-                checked={useFirebase}
-                onChange={(e) => setUseFirebase(e.target.checked)}
-                className="rounded border-gh-border-default text-gh-accent-emphasis focus:ring-gh-accent-fg h-4 w-4"
-              />
             </div>
 
             {useFirebase && (
