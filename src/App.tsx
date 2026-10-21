@@ -7,12 +7,31 @@ import { AlertDetailDrawer } from './components/AlertDetailDrawer';
 import { RepoManagementModal } from './components/RepoManagementModal';
 import { SettingsModal } from './components/SettingsModal';
 import { useDashboard } from './context/DashboardContext';
-import { Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Sparkles, ShieldCheck, LogIn } from 'lucide-react';
 
 export const AppContent: React.FC = () => {
-  const { isDemoMode } = useDashboard();
+  const {
+    currentUser,
+    config,
+    loginWithGitHub,
+  } = useDashboard();
+
   const [isRepoManagerOpen, setIsRepoManagerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const handleGitHubLogin = async () => {
+    setIsLoggingIn(true);
+    try {
+      await loginWithGitHub();
+    } catch {
+      // Handled in context
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const isGuest = !currentUser && !config.githubToken;
 
   return (
     <div className="min-h-screen bg-gh-canvas-default text-gh-fg-default flex flex-col font-sans selection:bg-gh-accent-emphasis selection:text-white">
@@ -22,27 +41,46 @@ export const AppContent: React.FC = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
-      {/* Demo Banner */}
-      {isDemoMode && (
-        <div className="bg-gradient-to-r from-blue-900/40 via-purple-900/40 to-blue-900/40 border-b border-gh-accent-emphasis/30 py-2.5 px-4 text-xs text-center text-gh-fg-default">
-          <div className="max-w-7xl mx-auto flex items-center justify-center space-x-2">
-            <Sparkles className="w-3.5 h-3.5 text-gh-accent-fg flex-shrink-0" />
-            <span>
-              You are exploring <strong>Demo Mode</strong> with simulated repositories, Dependabot CVEs, CodeQL findings, and Pages builds.
-            </span>
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="ml-2 font-semibold text-gh-accent-fg hover:underline inline-flex items-center space-x-0.5"
-            >
-              <span>Connect your GitHub token</span>
-              <ArrowRight className="w-3 h-3" />
-            </button>
+      {/* Guest Onboarding Banner */}
+      {isGuest && (
+        <div className="bg-gradient-to-r from-blue-950/60 via-purple-950/40 to-blue-950/60 border-b border-gh-accent-emphasis/30 py-3 px-4">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center space-x-2.5">
+              <div className="p-1.5 rounded-full bg-gh-accent-emphasis/20 text-gh-accent-fg border border-gh-accent-emphasis/30 flex-shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gh-fg-default">
+                  Welcome to RepoPulse! You are previewing simulated repositories in Demo Mode.
+                </p>
+                <p className="text-[11px] text-gh-fg-muted">
+                  Sign in with GitHub with 1-click to auto-detect and monitor your real repositories.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <button
+                onClick={handleGitHubLogin}
+                disabled={isLoggingIn}
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-[#238636] hover:bg-[#2ea043] text-white transition-colors shadow-sm"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign in with GitHub</span>
+              </button>
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="px-2.5 py-1.5 text-xs font-medium rounded-md bg-gh-canvas-subtle hover:bg-gh-border-muted border border-gh-border-default text-gh-fg-muted hover:text-gh-fg-default transition-colors"
+              >
+                Manual PAT
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5">
         {/* Metric Overview Cards */}
         <MetricsOverview />
 
@@ -54,7 +92,7 @@ export const AppContent: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gh-border-default bg-gh-canvas-subtle py-6 text-xs text-gh-fg-muted mt-12">
+      <footer className="border-t border-gh-border-default bg-gh-canvas-subtle py-5 text-xs text-gh-fg-muted mt-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
             <ShieldCheck className="w-4 h-4 text-gh-accent-fg" />

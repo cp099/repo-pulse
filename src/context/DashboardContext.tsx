@@ -1,10 +1,28 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { User } from 'firebase/auth';
 import { GlobalMetrics, RepoHealthSummary, Repository, UserConfig } from '../types';
-import { getLocalConfig, saveLocalConfig, getLocalHealthCache, saveLocalHealthCache, initializeFirebase, syncHealthToCloud } from '../services/firebase';
+import {
+  getLocalConfig,
+  saveLocalConfig,
+  getLocalHealthCache,
+  saveLocalHealthCache,
+  signInWithGitHub,
+  signOutUser,
+  subscribeToAuth,
+  syncHealthToCloud,
+  fetchHealthFromCloud,
+  isFirebaseConfigured,
+} from '../services/firebase';
 import { scanRepositoryHealth, fetchUserRepositories, getRateLimitInfo, RateLimitInfo } from '../services/githubApi';
 import { MOCK_HEALTH_SUMMARIES, MOCK_REPOSITORIES } from '../services/mockData';
 
+export type SortOption = 'severity' | 'alerts' | 'name' | 'pages';
+
 interface DashboardContextType {
+  currentUser: User | null;
+  loginWithGitHub: () => Promise<void>;
+  logout: () => Promise<void>;
+  isFirebaseReady: boolean;
   config: UserConfig;
   updateConfig: (newConfig: Partial<UserConfig>) => void;
   isDemoMode: boolean;
@@ -25,11 +43,17 @@ interface DashboardContextType {
   setSearchQuery: (q: string) => void;
   filterStatus: 'all' | 'critical' | 'warning' | 'healthy' | 'pages';
   setFilterStatus: (f: 'all' | 'critical' | 'warning' | 'healthy' | 'pages') => void;
+  sortBy: SortOption;
+  setSortBy: (s: SortOption) => void;
+  authError: string | null;
+  setAuthError: (e: string | null) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
 export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [config, setConfigState] = useState<UserConfig>(getLocalConfig);
   const [isDemoMode, setDemoMode] = useState<boolean>(!config.githubToken);
   const [healthSummaries, setHealthSummaries] = useState<RepoHealthSummary[]>(() => {
@@ -45,16 +69,35 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [availableRepos, setAvailableRepos] = useState<Repository[]>([]);
   const [isLoadingRepos, setIsLoadingRepos] = useState<boolean>(false);
 
-  // Filters
+  // Filters & Sorting (Stitch design system)
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'critical' | 'warning' | 'healthy' | 'pages'>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('severity');
 
-  // Initialize Firebase when config changes
+  // Track Firebase Auth state
   useEffect(() => {
-    if (config.useFirebaseSync && config.firebaseConfig) {
-      initializeFirebase(config.firebaseConfig);
-    }
-  }, [config.useFirebaseSync, config.firebaseConfig]);
+    const unsubscribe = subscribeToAuth(async (user) => {
+      setCurrentUser(user);
+      if (user) {
+        // Fetch cloud data for this authenticated user
+        const cloudData = await fetchHealthFromCloud(user.uid);
+        if (cloudData) {
+          if (cloudData.monitoredRepos && cloudData.monitoredRepos.length > 0) {
+            setConfigState(prev => {
+              const updated = { ...prev, monitoredRepos: cloudData.monitoredRepos };
+              saveLocalConfig(updated);
+              return updated;
+            });
+          }
+          if (cloudData.summaries && cloudData.summaries.length > 0) {
+            setHealthSummaries(cloudData.summaries);
+            setDemoMode(false);
+          }
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const updateConfig = useCallback((newConfig: Partial<UserConfig>) => {
     setConfigState(prev => {
@@ -66,6 +109,31 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return updated;
     });
   }, [isDemoMode]);
+
+  // 1-Click Sign in with GitHub
+  const loginWithGitHub = useCallback(async () => {
+    setAuthError(null);
+    try {
+      const { user, githubToken } = await signInWithGitHub();
+      setCurrentUser(user);
+      if (githubToken) {
+        updateConfig({ githubToken });
+        setDemoMode(false);
+      }
+    } catch (err: any) {
+      console.error('GitHub Sign-In error:', err);
+      setAuthError(err.message || 'GitHub Authentication failed');
+      throw err;
+    }
+  }, [updateConfig]);
+
+  // Sign out
+  const logout = useCallback(async () => {
+    await signOutUser();
+    setCurrentUser(null);
+    setDemoMode(true);
+    updateConfig({ githubToken: '' });
+  }, [updateConfig]);
 
   // Load available user repositories
   const fetchAvailableRepos = useCallback(async (): Promise<Repository[]> => {
@@ -95,7 +163,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (isDemoMode || !config.githubToken) {
       setIsScanning(true);
       setScanProgress({ current: 1, total: MOCK_HEALTH_SUMMARIES.length, repoName: 'Simulating refresh...' });
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise(r => setTimeout(r, 600));
       setHealthSummaries(MOCK_HEALTH_SUMMARIES);
       setLastRefreshed(new Date());
       setIsScanning(false);
@@ -110,7 +178,6 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setIsScanning(true);
     const results: RepoHealthSummary[] = [];
 
-    // Ensure we have repo objects
     let reposList = availableRepos;
     if (reposList.length === 0) {
       reposList = await fetchAvailableRepos();
@@ -137,10 +204,10 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setLastRefreshed(new Date());
     setIsScanning(false);
 
-    if (config.useFirebaseSync) {
-      syncHealthToCloud('default_user', results);
+    if (currentUser) {
+      syncHealthToCloud(currentUser.uid, config.monitoredRepos, results);
     }
-  }, [isScanning, isDemoMode, config.githubToken, config.monitoredRepos, config.useFirebaseSync, availableRepos, fetchAvailableRepos]);
+  }, [isScanning, isDemoMode, config.githubToken, config.monitoredRepos, availableRepos, fetchAvailableRepos, currentUser]);
 
   // Auto-refresh interval
   useEffect(() => {
@@ -193,6 +260,10 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   return (
     <DashboardContext.Provider
       value={{
+        currentUser,
+        loginWithGitHub,
+        logout,
+        isFirebaseReady: isFirebaseConfigured(),
         config,
         updateConfig,
         isDemoMode,
@@ -213,6 +284,10 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setSearchQuery,
         filterStatus,
         setFilterStatus,
+        sortBy,
+        setSortBy,
+        authError,
+        setAuthError,
       }}
     >
       {children}
