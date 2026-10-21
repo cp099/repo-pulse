@@ -7,8 +7,6 @@
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <script>
-      // Single Page App redirect for GitHub Pages
-      // If accessing a deep path, redirect to base with hash/path
       var pathSegmentsToKeep = 1;
       var l = window.location;
       l.replace(
@@ -41,6 +39,18 @@
         max-width: 480px;
         box-shadow: 0 8px 24px rgba(0,0,0,0.5);
       }
+      .icon-wrapper {
+        margin-bottom: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: rgba(88, 166, 255, 0.1);
+        border: 1px solid rgba(88, 166, 255, 0.2);
+        color: #58a6ff;
+      }
       h1 { font-size: 48px; margin: 0 0 10px; color: #58a6ff; font-weight: 800; }
       p { color: #8b949e; font-size: 14px; line-height: 1.5; margin: 0 0 24px; }
       a {
@@ -59,7 +69,12 @@
   </head>
   <body>
     <div class="card">
-      <div style="font-size: 48px; margin-bottom: 12px;">🛡️</div>
+      <div class="icon-wrapper">
+        <!-- Google Material Symbol: Shield Security -->
+        <svg xmlns="http://www.w3.org/2000/svg" height="36" viewBox="0 -960 960 960" width="36" fill="currentColor">
+          <path d="m480-80-360-160v-320q0-185 131.5-314.5T480-1004q160 0 291.5 129.5T903-560v320L480-80Zm0-84 280-124v-272q0-136-93.5-234.5T480-870q-113 0-206.5 98.5T180-536v272l300 124Zm0-376Z"/>
+        </svg>
+      </div>
       <h1>404</h1>
       <p>The repository, security report, or dashboard view you requested could not be located on RepoPulse.</p>
       <a href="./">Return to Dashboard</a>

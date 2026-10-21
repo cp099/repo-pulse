@@ -1,4 +1,4 @@
-name: ✨ Feature Request
+name: Feature Request
 description: Suggest an idea or enhancement for RepoPulse
 title: "[Feature]: "
 labels: ["enhancement", "proposal"]
@@ -6,14 +6,14 @@ body:
   - type: markdown
     attributes:
       value: |
-        Have an idea to make RepoPulse better? We would love to hear it!
+        Have an idea to make RepoPulse better? We would love to hear it.
 
   - type: textarea
     id: problem
     attributes:
       label: Is your feature request related to a problem?
       description: A clear and concise description of what the problem or limitation is.
-      placeholder: I am always frustrated when...
+      placeholder: Describe the problem or current workflow...
     validations:
       required: true
 
@@ -30,7 +30,7 @@ body:
     id: alternatives
     attributes:
       label: Alternative Solutions Considered
-      description: Describe any alternative solutions or features you've considered.
+      description: Describe any alternative solutions or features you have considered.
     validations:
       required: false
 

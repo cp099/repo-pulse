@@ -40,7 +40,7 @@ export const RepoTable: React.FC = () => {
     return true;
   });
 
-  // 2. Sort (Stitch specification)
+  // 2. Sort repositories by selected criteria
   const sorted = [...filtered].sort((a, b) => {
     if (sortBy === 'severity') {
       const severityScore = (s: RepoHealthSummary) =>
@@ -142,7 +142,7 @@ const RepoTableRow: React.FC<{
         </div>
       </td>
 
-      {/* 2. Feature flags (Stitch micro-badges) */}
+      {/* 2. Feature status badges */}
       <td className="py-2.5 px-3.5 align-middle">
         <div className="flex flex-wrap gap-1">
           {features.dependabot_enabled && (

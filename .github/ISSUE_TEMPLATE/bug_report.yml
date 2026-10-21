@@ -1,4 +1,4 @@
-name: 🐛 Bug Report
+name: Bug Report
 description: Create a report to help us fix a bug in RepoPulse
 title: "[Bug]: "
 labels: ["bug", "triage"]
@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report an issue! Please fill out the form below.
+        Thanks for taking the time to report an issue. Please fill out the form below.
 
   - type: textarea
     id: description

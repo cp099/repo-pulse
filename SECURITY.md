@@ -1,23 +1,23 @@
 # Security Policy
 
-## 🛡️ Supported Versions
+## Supported Versions
 
-RepoPulse follows a continuous delivery release model hosted directly on GitHub Pages. Only the latest release on the `main` branch is actively supported with security updates.
+RepoPulse follows a continuous delivery release model hosted directly on GitHub Pages. The latest release on the `main` branch is actively supported with security updates.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.x.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+| Version | Supported |
+| ------- | --------- |
+| 1.x.x   | Yes       |
+| < 1.0   | No        |
 
 ---
 
-## 🔒 Security Architecture: Zero-Intermediary Guarantee
+## Security Architecture: Zero-Intermediary Guarantee
 
-RepoPulse is engineered with a strict **client-direct security model**:
+RepoPulse is engineered with a strict client-direct security model:
 
 1. **Direct Browser-to-GitHub Communication**:
    - All queries to `api.github.com` (such as Dependabot alerts, CodeQL static findings, and Pages deployments) execute directly from your web browser over secure HTTPS.
-   - There are **no proxy servers or backend intermediaries** reading your repository contents, tokens, or security advisories.
+   - There are no proxy servers or backend intermediaries reading your repository contents, tokens, or security advisories.
 
 2. **Token Security**:
    - When signing in via 1-Click GitHub OAuth, your access token is preserved strictly in runtime memory and browser LocalStorage.
@@ -34,11 +34,11 @@ RepoPulse is engineered with a strict **client-direct security model**:
 
 ---
 
-## 🚨 Reporting a Vulnerability
+## Reporting a Vulnerability
 
-We take the security of RepoPulse and its users seriously. If you discover a security vulnerability, please report it responsibly:
+If you discover a security vulnerability, please report it responsibly:
 
-1. **Do not create a public issue** on GitHub.
+1. Do not create a public issue on GitHub.
 2. Report via GitHub's [Private Vulnerability Reporting](https://github.com/cp099/repo-pulse/security/advisories/new).
 3. Alternatively, email the maintainer directly at **chiragpatil07@gmail.com** with the subject `[SECURITY VULNERABILITY] RepoPulse`.
 
@@ -48,4 +48,4 @@ We take the security of RepoPulse and its users seriously. If you discover a sec
 - Potential impact and affected components.
 - Any suggested remediation or patch.
 
-We will acknowledge receipt within **24 hours** and provide a timeline for resolution. Once addressed, security advisories will be published with attribution to the reporter.
+We will acknowledge receipt within 24 hours and provide a timeline for resolution. Once addressed, security advisories will be published with attribution to the reporter.

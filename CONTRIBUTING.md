@@ -1,40 +1,38 @@
-# Contributing to RepoPulse ⚡
+# Contributing to RepoPulse
 
-First off, thank you for taking the time to contribute! Contributions are what make the open source community such an amazing place to learn, inspire, and create.
-
-All kinds of contributions are welcome: bug fixes, feature requests, documentation improvements, UI polish, and performance optimizations.
+Thank you for your interest in contributing to RepoPulse. Contributions of all types are welcome: bug fixes, feature requests, documentation improvements, UI polish, and performance optimizations.
 
 ---
 
-## 🧭 Code of Conduct
+## Code of Conduct
 
 This project and everyone participating in it is governed by the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
 ---
 
-## 🛠️ Local Development Setup
+## Local Development Setup
 
 ### Prerequisites
-- **Node.js**: v18.0.0 or later (v20+ recommended)
-- **npm**: v9.0.0 or later
+- Node.js: v18.0.0 or later (v20+ recommended)
+- npm: v9.0.0 or later
 
 ### Getting Started
-1. **Fork** the repository on GitHub: [https://github.com/cp099/repo-pulse/fork](https://github.com/cp099/repo-pulse/fork)
-2. **Clone** your fork locally:
+1. Fork the repository on GitHub: [https://github.com/cp099/repo-pulse/fork](https://github.com/cp099/repo-pulse/fork)
+2. Clone your fork locally:
    ```bash
    git clone https://github.com/<your-username>/repo-pulse.git
    cd repo-pulse
    ```
-3. **Install dependencies**:
+3. Install dependencies:
    ```bash
    npm install
    ```
-4. **Configure environment (Optional)**:
+4. Configure environment (Optional):
    ```bash
    cp .env.example .env.local
    ```
-   *(Optional: You can run the dashboard in mock/demo mode without any credentials, or sign in via GitHub OAuth).*
-5. **Start the development server**:
+   (Optional: You can run the dashboard in mock/demo mode without any credentials, or sign in via GitHub OAuth).
+5. Start the development server:
    ```bash
    npm run dev
    ```
@@ -42,11 +40,11 @@ This project and everyone participating in it is governed by the [Contributor Co
 
 ---
 
-## 🌿 Branching Strategy & Workflow
+## Branching Strategy & Workflow
 
 1. Create a feature branch off `main`:
    ```bash
-   git checkout -b feat/my-awesome-feature
+   git checkout -b feat/my-feature
    # or
    git checkout -b fix/issue-description
    ```
@@ -65,20 +63,21 @@ This project and everyone participating in it is governed by the [Contributor Co
 
 ---
 
-## 🎨 Design & Coding Guidelines
+## Design & Coding Guidelines
 
-- **Component Architecture**: Keep components modular, accessible, and self-contained in `src/components/`.
-- **Styling**: Use Tailwind CSS with the established GitHub Primer color palette (`gh-canvas-*`, `gh-border-*`, `gh-fg-*`, `gh-accent-*`).
-- **Icons**: Use [Lucide Icons](https://lucide.dev/) matching GitHub's Octicon conventions.
-- **Accessibility**:
+- Component Architecture: Keep components modular, accessible, and self-contained in `src/components/`.
+- Styling: Use Tailwind CSS with the established GitHub Primer color palette (`gh-canvas-*`, `gh-border-*`, `gh-fg-*`, `gh-accent-*`).
+- Icons: Use Lucide Icons matching GitHub's Octicon conventions. Avoid raw emojis in interface text or buttons.
+- Accessibility:
   - All interactive buttons must have visible focus rings (`focus-visible:ring-2`).
   - Icon-only buttons must include descriptive `aria-label` attributes.
   - Text must satisfy WCAG AA contrast standards (minimum 4.5:1 against dark backgrounds).
-- **Zero Secrets**: Never commit API keys, GitHub tokens, or credentials into version control.
+- Clean Code Standards: Maintain clean engineering practices without AI signatures, disclaimers, or boilerplate markers.
+- Zero Secrets: Never commit API keys, GitHub tokens, or credentials into version control.
 
 ---
 
-## 📬 Need Help?
+## Support & Discussions
 
 - Check existing [GitHub Issues](https://github.com/cp099/repo-pulse/issues).
 - Start a discussion in [GitHub Discussions](https://github.com/cp099/repo-pulse/discussions).
