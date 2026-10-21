@@ -1,4 +1,5 @@
 import { RepoHealthSummary, Repository } from '../types';
+import { computeLanguageBreakdown } from './githubApi';
 
 export const MOCK_REPOSITORIES: Repository[] = [
   {
@@ -213,6 +214,13 @@ export const MOCK_HEALTH_SUMMARIES: RepoHealthSummary[] = [
     code_scanning_warning_count: 0,
     pages_status: 'disabled',
     health_status: 'critical',
+    languages: computeLanguageBreakdown({
+      TypeScript: 64200,
+      JavaScript: 21500,
+      HTML: 8100,
+      Dockerfile: 6200,
+    }),
+    primary_language: 'TypeScript',
     last_scanned: '2026-10-21T18:45:00Z',
   },
   {
@@ -269,6 +277,12 @@ export const MOCK_HEALTH_SUMMARIES: RepoHealthSummary[] = [
     code_scanning_warning_count: 0,
     pages_status: 'errored',
     health_status: 'critical',
+    languages: computeLanguageBreakdown({
+      HTML: 52000,
+      TypeScript: 31400,
+      CSS: 16600,
+    }),
+    primary_language: 'HTML',
     last_scanned: '2026-10-21T18:45:00Z',
   },
   {
@@ -343,6 +357,12 @@ export const MOCK_HEALTH_SUMMARIES: RepoHealthSummary[] = [
     code_scanning_warning_count: 1,
     pages_status: 'disabled',
     health_status: 'critical',
+    languages: computeLanguageBreakdown({
+      Go: 72800,
+      Shell: 15200,
+      Dockerfile: 12000,
+    }),
+    primary_language: 'Go',
     last_scanned: '2026-10-21T18:45:00Z',
   },
   {
@@ -372,6 +392,12 @@ export const MOCK_HEALTH_SUMMARIES: RepoHealthSummary[] = [
     code_scanning_warning_count: 0,
     pages_status: 'built',
     health_status: 'healthy',
+    languages: computeLanguageBreakdown({
+      TypeScript: 78400,
+      CSS: 14200,
+      HTML: 7400,
+    }),
+    primary_language: 'TypeScript',
     last_scanned: '2026-10-21T18:45:00Z',
   },
   {
@@ -392,6 +418,11 @@ export const MOCK_HEALTH_SUMMARIES: RepoHealthSummary[] = [
     code_scanning_warning_count: 0,
     pages_status: 'disabled',
     health_status: 'healthy',
+    languages: computeLanguageBreakdown({
+      Shell: 85000,
+      Python: 15000,
+    }),
+    primary_language: 'Shell',
     last_scanned: '2026-10-21T18:45:00Z',
   },
 ];

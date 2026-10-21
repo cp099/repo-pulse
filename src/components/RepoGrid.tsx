@@ -1,6 +1,7 @@
 import React from 'react';
 import { useDashboard } from '../context/DashboardContext';
 import { RepoHealthSummary } from '../types';
+import { LanguageBreakdown } from './LanguageBreakdown';
 import {
   Lock,
   Globe,
@@ -186,6 +187,15 @@ const RepoDashboardCard: React.FC<{
               <span>Pages</span>
             </span>
           )}
+        </div>
+
+        {/* Languages Breakdown */}
+        <div className="pt-2 border-t border-gh-border-muted/50">
+          <LanguageBreakdown
+            languages={summary.languages}
+            primaryLanguage={summary.primary_language || repo.language}
+            mode="card"
+          />
         </div>
 
         {/* Severity Metrics Bar */}

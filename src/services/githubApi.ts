@@ -1,10 +1,105 @@
 import {
   CodeScanningAlert,
   DependabotAlert,
+  LanguageItem,
   RepoFeatures,
   RepoHealthSummary,
   Repository,
 } from '../types';
+
+export const GITHUB_LANGUAGE_COLORS: Record<string, string> = {
+  Python: '#3572A5',
+  TypeScript: '#3178c6',
+  JavaScript: '#f1e05a',
+  HTML: '#e34c26',
+  CSS: '#563d7c',
+  'C++': '#f34b7d',
+  C: '#555555',
+  'C#': '#178600',
+  Java: '#b07219',
+  Go: '#00ADD8',
+  Rust: '#dea584',
+  Shell: '#89e051',
+  Bash: '#89e051',
+  PHP: '#4F5D95',
+  Ruby: '#701516',
+  Swift: '#F05138',
+  Kotlin: '#A97BFF',
+  Dart: '#00B4AB',
+  'Jupyter Notebook': '#DA5B0B',
+  Dockerfile: '#384d54',
+  Vue: '#41b883',
+  Svelte: '#ff3e00',
+  SCSS: '#c6538c',
+  Lua: '#000080',
+  R: '#198CE7',
+  Scala: '#c22d40',
+  Elixir: '#6e4a7e',
+  Haskell: '#5e5086',
+  Zig: '#ec915c',
+  Perl: '#0298c3',
+  SQL: '#e38c00',
+  Assembly: '#6E4C13',
+  TeX: '#3D6117',
+  Other: '#8b949e',
+};
+
+export function computeLanguageBreakdown(
+  rawLanguages?: Record<string, number>,
+  fallbackLang?: string | null
+): LanguageItem[] {
+  if (rawLanguages && Object.keys(rawLanguages).length > 0) {
+    const totalBytes = Object.values(rawLanguages).reduce((a, b) => a + b, 0);
+    if (totalBytes > 0) {
+      const sortedEntries = Object.entries(rawLanguages)
+        .sort(([, a], [, b]) => b - a);
+
+      const items: LanguageItem[] = [];
+      let accountedPct = 0;
+
+      for (let i = 0; i < sortedEntries.length; i++) {
+        const [langName, bytes] = sortedEntries[i];
+        const pct = Math.round((bytes / totalBytes) * 1000) / 10;
+
+        if (i >= 4 && sortedEntries.length > 5) {
+          const remainingBytes = sortedEntries.slice(i).reduce((acc, [, b]) => acc + b, 0);
+          const remainingPct = Math.max(0.1, Math.round((100 - accountedPct) * 10) / 10);
+          items.push({
+            name: 'Other',
+            percentage: remainingPct,
+            color: '#8b949e',
+            bytes: remainingBytes,
+          });
+          break;
+        }
+
+        if (pct > 0) {
+          items.push({
+            name: langName,
+            percentage: pct,
+            color: GITHUB_LANGUAGE_COLORS[langName] || '#58a6ff',
+            bytes,
+          });
+          accountedPct += pct;
+        }
+      }
+      return items;
+    }
+  }
+
+  if (fallbackLang) {
+    return [
+      {
+        name: fallbackLang,
+        percentage: 100,
+        color: GITHUB_LANGUAGE_COLORS[fallbackLang] || '#58a6ff',
+        bytes: 1,
+      },
+    ];
+  }
+
+  return [];
+}
 
 export class GitHubApiError extends Error {
   constructor(public status: number, message: string) {
@@ -187,6 +282,17 @@ export async function fetchCodeScanningAlerts(owner: string, repo: string, token
 }
 
 /**
+ * Fetch language breakdown in bytes for a repository
+ */
+export async function fetchRepositoryLanguages(owner: string, repo: string, token: string): Promise<Record<string, number>> {
+  try {
+    return await githubFetch(`repos/${owner}/${repo}/languages`, token);
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Scan a single repository completely and build its health summary
  */
 export async function scanRepositoryHealth(repo: Repository, token: string): Promise<RepoHealthSummary> {
@@ -202,6 +308,13 @@ export async function scanRepositoryHealth(repo: Repository, token: string): Pro
   if (features.code_scanning_enabled) {
     codeScanningAlerts = await fetchCodeScanningAlerts(owner, name, token);
   }
+
+  // Fetch languages breakdown
+  let rawLanguages = repo.languages;
+  if (!rawLanguages || Object.keys(rawLanguages).length === 0) {
+    rawLanguages = await fetchRepositoryLanguages(owner, name, token);
+  }
+  const languages = computeLanguageBreakdown(rawLanguages, repo.language);
 
   const criticalCount = dependabotAlerts.filter(a => a.security_advisory?.severity === 'critical').length;
   const highCount = dependabotAlerts.filter(a => a.security_advisory?.severity === 'high').length;
@@ -231,6 +344,8 @@ export async function scanRepositoryHealth(repo: Repository, token: string): Pro
     code_scanning_warning_count: codeScanningWarningCount,
     pages_status: features.pages_status || 'disabled',
     health_status: healthStatus,
+    languages,
+    primary_language: languages[0]?.name || repo.language || null,
     last_scanned: new Date().toISOString(),
   };
 }

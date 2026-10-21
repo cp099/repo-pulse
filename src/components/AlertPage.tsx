@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { RepoHealthSummary } from '../types';
+import { LanguageBreakdown } from './LanguageBreakdown';
 import {
   ArrowLeft,
   ExternalLink,
@@ -130,6 +131,15 @@ export const AlertPage: React.FC<AlertPageProps> = ({ summary, onBack }) => {
             {repo.description}
           </p>
         )}
+
+        {/* Languages Breakdown */}
+        <div className="pt-3 border-t border-gh-border-muted/60">
+          <LanguageBreakdown
+            languages={summary.languages}
+            primaryLanguage={summary.primary_language || repo.language}
+            mode="card"
+          />
+        </div>
       </div>
 
       {/* Tabs Navigation */}

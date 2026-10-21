@@ -14,6 +14,8 @@ export interface Repository {
   has_pages: boolean;
   fork: boolean;
   archived: boolean;
+  language?: string | null;
+  languages?: Record<string, number>;
 }
 
 export interface RepoFeatures {
@@ -92,6 +94,13 @@ export interface CodeScanningAlert {
   created_at: string;
 }
 
+export interface LanguageItem {
+  name: string;
+  percentage: number;
+  color: string;
+  bytes: number;
+}
+
 export interface RepoHealthSummary {
   repo: Repository;
   features: RepoFeatures;
@@ -105,6 +114,8 @@ export interface RepoHealthSummary {
   code_scanning_warning_count: number;
   pages_status: 'built' | 'building' | 'errored' | 'disabled' | 'unknown';
   health_status: 'healthy' | 'warning' | 'critical';
+  languages?: LanguageItem[];
+  primary_language?: string | null;
   last_scanned: string;
 }
 

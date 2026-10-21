@@ -1,6 +1,7 @@
 import React from 'react';
 import { useDashboard } from '../context/DashboardContext';
 import { RepoHealthSummary } from '../types';
+import { LanguageBreakdown } from './LanguageBreakdown';
 import {
   Lock,
   Globe,
@@ -84,6 +85,7 @@ export const RepoTable: React.FC = () => {
           <thead>
             <tr className="border-b border-gh-border-default bg-gh-canvas-default/70 text-gh-fg-muted uppercase text-[10px] font-semibold tracking-wider">
               <th className="py-2.5 px-3.5">Repository</th>
+              <th className="py-2.5 px-3.5">Languages</th>
               <th className="py-2.5 px-3.5">Active Features</th>
               <th className="py-2.5 px-3.5">Dependabot Vulnerabilities</th>
               <th className="py-2.5 px-3.5">CodeQL Flaws</th>
@@ -142,7 +144,16 @@ const RepoTableRow: React.FC<{
         </div>
       </td>
 
-      {/* 2. Feature status badges */}
+      {/* 2. Languages / Tech Stack Breakdown */}
+      <td className="py-2.5 px-3.5 align-middle">
+        <LanguageBreakdown
+          languages={summary.languages}
+          primaryLanguage={summary.primary_language || repo.language}
+          mode="compact"
+        />
+      </td>
+
+      {/* 3. Feature status badges */}
       <td className="py-2.5 px-3.5 align-middle">
         <div className="flex flex-wrap gap-1">
           {features.dependabot_enabled && (
