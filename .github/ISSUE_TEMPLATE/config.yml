@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Community Discussions
+    url: https://github.com/cp099/repo-pulse/discussions
+    about: Ask questions, share ideas, and connect with other RepoPulse users.
+  - name: 🔒 Report a Security Vulnerability
+    url: https://github.com/cp099/repo-pulse/security/advisories/new
+    about: Please report security vulnerabilities privately rather than via public issues.
