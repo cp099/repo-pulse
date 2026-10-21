@@ -1,5 +1,6 @@
 import React from 'react';
 import { LanguageItem } from '../types';
+import { getLanguageColor } from '../services/githubApi';
 
 interface LanguageBreakdownProps {
   languages?: LanguageItem[];
@@ -15,7 +16,7 @@ export const LanguageBreakdown: React.FC<LanguageBreakdownProps> = ({
   className = '',
 }) => {
   // If no detailed languages array, but primaryLanguage exists, fallback to single language
-  const items =
+  const rawItems =
     languages && languages.length > 0
       ? languages
       : primaryLanguage
@@ -23,11 +24,17 @@ export const LanguageBreakdown: React.FC<LanguageBreakdownProps> = ({
           {
             name: primaryLanguage,
             percentage: 100,
-            color: '#58a6ff',
+            color: getLanguageColor(primaryLanguage),
             bytes: 1,
           },
         ]
       : [];
+
+  // Guarantee that every language consistently receives its standard GitHub Linguist color
+  const items = rawItems.map((lang) => ({
+    ...lang,
+    color: getLanguageColor(lang.name),
+  }));
 
   if (items.length === 0) {
     return (
@@ -39,11 +46,14 @@ export const LanguageBreakdown: React.FC<LanguageBreakdownProps> = ({
 
   // 1. Compact Mode (Optimized for Table View column)
   if (mode === 'compact') {
-    const topTwo = items.slice(0, 2);
-    const hasMore = items.length > 2;
+    const visibleItems = items.slice(0, 3);
+    const remainingCount = items.length - visibleItems.length;
 
     return (
-      <div className={`space-y-1.5 min-w-[130px] max-w-[210px] ${className}`} title={items.map(l => `${l.name}: ${l.percentage}%`).join(' · ')}>
+      <div
+        className={`space-y-1.5 min-w-[130px] max-w-[230px] ${className}`}
+        title={items.map((l) => `${l.name}: ${l.percentage}%`).join(' · ')}
+      >
         {/* Segmented multi-color progress bar */}
         <div className="h-2 w-full rounded-full flex overflow-hidden bg-gh-border-muted/70 p-[0.5px]">
           {items.map((lang) => (
@@ -61,8 +71,8 @@ export const LanguageBreakdown: React.FC<LanguageBreakdownProps> = ({
 
         {/* Top language indicators with colored dots */}
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[10px] font-mono leading-tight">
-          {topTwo.map((lang) => (
-            <span key={lang.name} className="inline-flex items-center space-x-1">
+          {visibleItems.map((lang) => (
+            <span key={lang.name} className="inline-flex items-center space-x-1 whitespace-nowrap">
               <span
                 className="w-2 h-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: lang.color }}
@@ -71,9 +81,12 @@ export const LanguageBreakdown: React.FC<LanguageBreakdownProps> = ({
               <span className="text-[#8b949e]">{lang.percentage}%</span>
             </span>
           ))}
-          {hasMore && (
-            <span className="text-[9px] text-[#8b949e] font-semibold">
-              +{items.length - 2}
+          {remainingCount > 0 && (
+            <span
+              className="text-[9px] text-[#8b949e] font-semibold cursor-help"
+              title={items.slice(3).map((l) => `${l.name}: ${l.percentage}%`).join(', ')}
+            >
+              +{remainingCount}
             </span>
           )}
         </div>
@@ -81,7 +94,7 @@ export const LanguageBreakdown: React.FC<LanguageBreakdownProps> = ({
     );
   }
 
-  // 2. Card / Full Mode (Matches GitHub's sidebar screenshot)
+  // 2. Card / Full Mode (Matches GitHub's sidebar breakdown)
   return (
     <div className={`space-y-2 ${className}`}>
       <div className="flex items-center justify-between text-xs font-semibold text-gh-fg-default">

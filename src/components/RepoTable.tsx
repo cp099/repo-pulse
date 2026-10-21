@@ -181,8 +181,14 @@ const RepoTableRow: React.FC<{
               <span>Pages</span>
             </span>
           )}
-          {!features.dependabot_enabled && !features.code_scanning_enabled && !features.pages_enabled && (
-            <span className="text-gh-fg-muted/40 text-xs font-mono">—</span>
+          {summary.open_pr_count > 0 && (
+            <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.2 rounded text-[10px] font-mono bg-gh-canvas-default text-gh-fg-muted border border-gh-border-default">
+              <GitPullRequest className="w-2.5 h-2.5 text-gh-accent-fg" />
+              <span>PRs</span>
+            </span>
+          )}
+          {!features.dependabot_enabled && !features.code_scanning_enabled && !features.pages_enabled && summary.open_pr_count === 0 && (
+            <span className="text-gh-fg-muted/70 text-[11px] font-mono">None active</span>
           )}
         </div>
       </td>
@@ -190,7 +196,7 @@ const RepoTableRow: React.FC<{
       {/* 3. Dependabot Alerts */}
       <td className="py-2.5 px-3.5 align-middle">
         {!features.dependabot_enabled ? (
-          <span className="text-gh-fg-muted/40 text-xs font-mono">—</span>
+          <span className="text-gh-fg-muted/60 text-[11px] font-mono">Not enabled</span>
         ) : totalVulnerabilities === 0 ? (
           <span className="inline-flex items-center space-x-1 text-gh-success-fg text-[11px] font-medium">
             <CheckCircle2 className="w-3 h-3" />
@@ -220,7 +226,7 @@ const RepoTableRow: React.FC<{
       {/* 4. CodeQL Scanning Alerts */}
       <td className="py-2.5 px-3.5 align-middle">
         {!features.code_scanning_enabled ? (
-          <span className="text-gh-fg-muted/40 text-xs font-mono">—</span>
+          <span className="text-gh-fg-muted/60 text-[11px] font-mono">Not enabled</span>
         ) : code_scanning_error_count === 0 && code_scanning_warning_count === 0 ? (
           <span className="inline-flex items-center space-x-1 text-gh-success-fg text-[11px] font-medium">
             <CheckCircle2 className="w-3 h-3" />
@@ -270,7 +276,7 @@ const RepoTableRow: React.FC<{
       {/* 6. GitHub Pages Build Status */}
       <td className="py-2.5 px-3.5 align-middle">
         {!features.pages_enabled ? (
-          <span className="text-gh-fg-muted/40 text-xs font-mono">—</span>
+          <span className="text-gh-fg-muted/60 text-[11px] font-mono">No Pages</span>
         ) : features.pages_status === 'built' ? (
           <div className="flex items-center space-x-1.5">
             <span className="inline-flex items-center space-x-1 px-2 py-0.2 rounded text-[10px] font-medium font-mono bg-gh-success-subtle text-gh-success-fg border border-gh-success-fg/30">

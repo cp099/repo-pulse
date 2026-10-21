@@ -193,6 +193,15 @@ const RepoDashboardCard: React.FC<{
               <span>Pages</span>
             </span>
           )}
+          {summary.open_pr_count > 0 && (
+            <span className="inline-flex items-center space-x-1 px-1.5 py-0.2 rounded text-[10px] font-mono bg-gh-canvas-default text-gh-fg-muted border border-gh-border-default">
+              <GitPullRequest className="w-2.5 h-2.5 text-gh-accent-fg" />
+              <span>PRs</span>
+            </span>
+          )}
+          {!features.dependabot_enabled && !features.code_scanning_enabled && !features.pages_enabled && summary.open_pr_count === 0 && (
+            <span className="text-[10px] font-mono text-gh-fg-muted/70">None active</span>
+          )}
         </div>
 
         {/* Languages Breakdown */}
@@ -314,7 +323,7 @@ const RepoDashboardCard: React.FC<{
               </span>
             )
           ) : (
-            <span className="text-[11px] text-gh-fg-muted font-mono">Pages N/A</span>
+            <span className="text-[11px] text-gh-fg-muted/70 font-mono">No Pages</span>
           )}
         </div>
 

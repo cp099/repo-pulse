@@ -13,7 +13,14 @@ import {
   fetchHealthFromCloud,
   isFirebaseConfigured,
 } from '../services/firebase';
-import { scanRepositoryHealth, fetchUserRepositories, getRateLimitInfo, RateLimitInfo } from '../services/githubApi';
+import {
+  scanRepositoryHealth,
+  fetchUserRepositories,
+  fetchRepositoryLanguages,
+  computeLanguageBreakdown,
+  getRateLimitInfo,
+  RateLimitInfo,
+} from '../services/githubApi';
 
 export type SortOption = 'severity' | 'alerts' | 'prs' | 'name' | 'pages';
 export type ViewMode = 'grid' | 'table';
@@ -226,6 +233,10 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         } catch (err) {
           console.warn(`Failed scanning health for ${repo.full_name}:`, err);
         }
+        // Small pacing throttle to prevent triggering secondary rate-limiting
+        if (i < defaultRepos.length - 1) {
+          await new Promise((r) => setTimeout(r, 60));
+        }
       }
     } else {
       for (let i = 0; i < total; i++) {
@@ -239,25 +250,31 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         } catch (err) {
           console.warn(`Failed scanning health for ${repo.full_name}:`, err);
         }
+        // Small pacing throttle to prevent triggering secondary rate-limiting
+        if (i < total - 1) {
+          await new Promise((r) => setTimeout(r, 60));
+        }
       }
     }
 
-    setHealthSummaries(results);
-    saveLocalHealthCache(results);
+    if (results.length > 0) {
+      setHealthSummaries(results);
+      saveLocalHealthCache(results);
+      if (currentUser) {
+        syncHealthToCloud(currentUser.uid, config.monitoredRepos, results);
+      }
+    }
+
     setRateLimit(getRateLimitInfo());
     setLastRefreshed(new Date());
     setIsScanning(false);
     setIsManualScanning(false);
 
-    if (selectedSummary) {
+    if (selectedSummary && results.length > 0) {
       const updatedMatch = results.find(s => s.repo.id === selectedSummary.repo.id);
       if (updatedMatch) {
         setSelectedSummary(updatedMatch);
       }
-    }
-
-    if (currentUser) {
-      syncHealthToCloud(currentUser.uid, config.monitoredRepos, results);
     }
   }, [isScanning, config.githubToken, config.monitoredRepos, availableRepos, fetchAvailableRepos, selectedSummary, currentUser]);
 
@@ -267,6 +284,57 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       refreshNow(true);
     }
   }, [config.githubToken]);
+
+  // Automatic background language hydration for any summaries that lack detailed language breakdown
+  useEffect(() => {
+    if (healthSummaries.length === 0) return;
+
+    const needsLanguages = healthSummaries.some(
+      (s) => !s.languages || s.languages.length <= 1
+    );
+    if (!needsLanguages) return;
+
+    let isCancelled = false;
+    const hydrateAllLanguages = async () => {
+      let changed = false;
+      const updatedSummaries = await Promise.all(
+        healthSummaries.map(async (item) => {
+          if (item.languages && item.languages.length > 1) {
+            return item;
+          }
+          const [owner, name] = item.repo.full_name.split('/');
+          try {
+            const raw = await fetchRepositoryLanguages(owner, name, config.githubToken);
+            if (raw && Object.keys(raw).length > 0) {
+              const breakdown = computeLanguageBreakdown(raw, item.repo.language);
+              changed = true;
+              return {
+                ...item,
+                languages: breakdown,
+                primary_language: breakdown[0]?.name || item.repo.language,
+              };
+            }
+          } catch {
+            // Keep existing
+          }
+          return item;
+        })
+      );
+
+      if (!isCancelled && changed) {
+        setHealthSummaries(updatedSummaries);
+        saveLocalHealthCache(updatedSummaries);
+        if (currentUser) {
+          syncHealthToCloud(currentUser.uid, config.monitoredRepos, updatedSummaries);
+        }
+      }
+    };
+
+    hydrateAllLanguages();
+    return () => {
+      isCancelled = true;
+    };
+  }, [healthSummaries.length, config.githubToken]);
 
   // Auto-refresh interval (silent background sync)
   useEffect(() => {

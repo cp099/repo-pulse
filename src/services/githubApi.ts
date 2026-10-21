@@ -9,11 +9,13 @@ import {
 } from '../types';
 
 export const GITHUB_LANGUAGE_COLORS: Record<string, string> = {
-  Python: '#3572A5',
   TypeScript: '#3178c6',
   JavaScript: '#f1e05a',
+  Python: '#3572A5',
   HTML: '#e34c26',
   CSS: '#563d7c',
+  SCSS: '#c6538c',
+  Sass: '#a53b70',
   'C++': '#f34b7d',
   C: '#555555',
   'C#': '#178600',
@@ -22,6 +24,8 @@ export const GITHUB_LANGUAGE_COLORS: Record<string, string> = {
   Rust: '#dea584',
   Shell: '#89e051',
   Bash: '#89e051',
+  Batchfile: '#C1F12E',
+  PowerShell: '#012456',
   PHP: '#4F5D95',
   Ruby: '#701516',
   Swift: '#F05138',
@@ -31,7 +35,6 @@ export const GITHUB_LANGUAGE_COLORS: Record<string, string> = {
   Dockerfile: '#384d54',
   Vue: '#41b883',
   Svelte: '#ff3e00',
-  SCSS: '#c6538c',
   Lua: '#000080',
   R: '#198CE7',
   Scala: '#c22d40',
@@ -40,10 +43,44 @@ export const GITHUB_LANGUAGE_COLORS: Record<string, string> = {
   Zig: '#ec915c',
   Perl: '#0298c3',
   SQL: '#e38c00',
+  PLpgSQL: '#336790',
   Assembly: '#6E4C13',
   TeX: '#3D6117',
+  LaTeX: '#3D6117',
+  Markdown: '#083fa1',
+  JSON: '#292929',
+  YAML: '#cb171e',
+  Makefile: '#427819',
+  CMake: '#DA3434',
+  Solidity: '#AA6746',
+  GraphQL: '#e10098',
+  Clojure: '#db5855',
+  Erlang: '#B83998',
+  OCaml: '#ef7a08',
+  F: '#b845fc',
+  'F#': '#b845fc',
+  Vim: '#199f4b',
+  'Vim Script': '#199f4b',
   Other: '#8b949e',
 };
+
+/**
+ * Returns a standardized, consistent color for any programming language.
+ * Always returns the exact same color for a language everywhere across the app.
+ */
+export function getLanguageColor(language?: string | null): string {
+  if (!language) return '#8b949e';
+  if (GITHUB_LANGUAGE_COLORS[language]) {
+    return GITHUB_LANGUAGE_COLORS[language];
+  }
+  // Deterministic color generation based on string hash for unlisted languages
+  let hash = 0;
+  for (let i = 0; i < language.length; i++) {
+    hash = language.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash % 360);
+  return `hsl(${hue}, 68%, 52%)`;
+}
 
 export function computeLanguageBreakdown(
   rawLanguages?: Record<string, number>,
@@ -62,7 +99,7 @@ export function computeLanguageBreakdown(
         const [langName, bytes] = sortedEntries[i];
         const pct = Math.round((bytes / totalBytes) * 1000) / 10;
 
-        if (i >= 4 && sortedEntries.length > 5) {
+        if (i >= 5 && sortedEntries.length > 6) {
           const remainingBytes = sortedEntries.slice(i).reduce((acc, [, b]) => acc + b, 0);
           const remainingPct = Math.max(0.1, Math.round((100 - accountedPct) * 10) / 10);
           items.push({
@@ -78,7 +115,7 @@ export function computeLanguageBreakdown(
           items.push({
             name: langName,
             percentage: pct,
-            color: GITHUB_LANGUAGE_COLORS[langName] || '#58a6ff',
+            color: getLanguageColor(langName),
             bytes,
           });
           accountedPct += pct;
@@ -93,7 +130,7 @@ export function computeLanguageBreakdown(
       {
         name: fallbackLang,
         percentage: 100,
-        color: GITHUB_LANGUAGE_COLORS[fallbackLang] || '#58a6ff',
+        color: getLanguageColor(fallbackLang),
         bytes: 1,
       },
     ];
@@ -139,7 +176,7 @@ function updateRateLimits(headers: Headers) {
   }
 }
 
-async function githubFetch(endpoint: string, token: string): Promise<any> {
+async function githubFetch(endpoint: string, token: string, retries: number = 1): Promise<any> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
   const url = `https://api.github.com/${cleanEndpoint}`;
 
@@ -153,8 +190,22 @@ async function githubFetch(endpoint: string, token: string): Promise<any> {
 
   updateRateLimits(res.headers);
 
+  if (res.status === 429 && retries > 0) {
+    await new Promise((r) => setTimeout(r, 1200));
+    return githubFetch(endpoint, token, retries - 1);
+  }
+
   if (res.status === 404 || res.status === 403) {
     const errorBody = await res.json().catch(() => ({}));
+    if (
+      res.status === 403 &&
+      typeof errorBody.message === 'string' &&
+      errorBody.message.toLowerCase().includes('secondary rate limit') &&
+      retries > 0
+    ) {
+      await new Promise((r) => setTimeout(r, 1800));
+      return githubFetch(endpoint, token, retries - 1);
+    }
     throw new GitHubApiError(res.status, errorBody.message || 'Forbidden or Not Found');
   }
 
@@ -283,14 +334,41 @@ export async function fetchCodeScanningAlerts(owner: string, repo: string, token
 }
 
 /**
- * Fetch language breakdown in bytes for a repository
+ * Fetch language breakdown in bytes for a repository.
+ * Attempts authenticated fetch first, then falls back to public fetch
+ * to ensure languages always load and never get blocked.
  */
-export async function fetchRepositoryLanguages(owner: string, repo: string, token: string): Promise<Record<string, number>> {
-  try {
-    return await githubFetch(`repos/${owner}/${repo}/languages`, token);
-  } catch {
-    return {};
+export async function fetchRepositoryLanguages(
+  owner: string,
+  repo: string,
+  token?: string
+): Promise<Record<string, number>> {
+  if (token) {
+    try {
+      const data = await githubFetch(`repos/${owner}/${repo}/languages`, token);
+      if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+        return data;
+      }
+    } catch {
+      // Continue to public endpoint fallback
+    }
   }
+
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // Ignore fallback failure
+  }
+
+  return {};
 }
 
 /**
@@ -334,23 +412,95 @@ export async function fetchOpenPullRequests(owner: string, repo: string, token: 
 }
 
 /**
- * Scan a single repository completely and build its health summary
+ * Scan a single repository completely and build its health summary.
+ * Efficiently combines alert fetching with presence detection to minimize
+ * GitHub API calls and prevent secondary rate-limiting.
  */
 export async function scanRepositoryHealth(repo: Repository, token: string): Promise<RepoHealthSummary> {
   const [owner, name] = repo.full_name.split('/');
-  const features = await detectRepositoryFeatures(owner, name, token);
 
+  const features: RepoFeatures = {
+    dependabot_enabled: false,
+    code_scanning_enabled: false,
+    pages_enabled: false,
+    pages_status: 'disabled',
+  };
+
+  // 1. Fetch Dependabot alerts (1 API call detects presence AND retrieves open CVEs)
   let dependabotAlerts: DependabotAlert[] = [];
-  if (features.dependabot_enabled) {
-    dependabotAlerts = await fetchDependabotAlerts(owner, name, token);
+  try {
+    const alerts = await githubFetch(
+      `repos/${owner}/${name}/dependabot/alerts?state=open&per_page=50&sort=created&direction=desc`,
+      token
+    );
+    if (Array.isArray(alerts)) {
+      features.dependabot_enabled = true;
+      dependabotAlerts = alerts;
+    }
+  } catch {
+    features.dependabot_enabled = false;
   }
 
+  // 2. Fetch Code Scanning / CodeQL alerts (1 API call detects presence AND retrieves open flaws)
   let codeScanningAlerts: CodeScanningAlert[] = [];
-  if (features.code_scanning_enabled) {
-    codeScanningAlerts = await fetchCodeScanningAlerts(owner, name, token);
+  try {
+    const alerts = await githubFetch(
+      `repos/${owner}/${name}/code-scanning/alerts?state=open&per_page=50&sort=created&direction=desc`,
+      token
+    );
+    if (Array.isArray(alerts)) {
+      features.code_scanning_enabled = true;
+      codeScanningAlerts = alerts;
+    }
+  } catch {
+    features.code_scanning_enabled = false;
   }
 
-  // Fetch open pull requests
+  // 3. GitHub Pages: only query if repository actually indicates pages presence
+  if (repo.has_pages !== false) {
+    try {
+      const pagesInfo = await githubFetch(`repos/${owner}/${name}/pages`, token);
+      if (pagesInfo && (pagesInfo.status || pagesInfo.html_url)) {
+        features.pages_enabled = true;
+        features.pages_url = pagesInfo.html_url;
+        features.pages_status =
+          pagesInfo.status === 'built'
+            ? 'built'
+            : pagesInfo.status === 'building'
+            ? 'building'
+            : 'errored';
+
+        try {
+          const runsData = await githubFetch(`repos/${owner}/${name}/actions/runs?per_page=1`, token);
+          if (runsData.workflow_runs && runsData.workflow_runs.length > 0) {
+            const run = runsData.workflow_runs[0];
+            features.last_pages_run = {
+              id: run.id,
+              name: run.name,
+              conclusion: run.conclusion,
+              status: run.status,
+              html_url: run.html_url,
+              updated_at: run.updated_at,
+            };
+            if (run.conclusion === 'failure') {
+              features.pages_status = 'errored';
+            } else if (run.status === 'in_progress' || run.status === 'queued') {
+              features.pages_status = 'building';
+            } else if (run.conclusion === 'success') {
+              features.pages_status = 'built';
+            }
+          }
+        } catch {
+          // Workflow query optional
+        }
+      }
+    } catch {
+      features.pages_enabled = false;
+      features.pages_status = 'disabled';
+    }
+  }
+
+  // 4. Fetch open pull requests
   let pullRequests: PullRequestAlert[] = [];
   try {
     pullRequests = await fetchOpenPullRequests(owner, name, token);
@@ -358,7 +508,7 @@ export async function scanRepositoryHealth(repo: Repository, token: string): Pro
     // continue
   }
 
-  // Fetch languages breakdown
+  // 5. Fetch languages breakdown
   let rawLanguages = repo.languages;
   if (!rawLanguages || Object.keys(rawLanguages).length === 0) {
     rawLanguages = await fetchRepositoryLanguages(owner, name, token);
