@@ -73,7 +73,7 @@ export const AlertPage: React.FC<AlertPageProps> = ({ summary, onBack }) => {
         <a
           href={`${repo.html_url}/security`}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-gh-canvas-subtle hover:bg-gh-border-muted border border-gh-border-default text-gh-fg-default transition-colors shadow-sm"
         >
           <span>Open GitHub Security Center</span>
@@ -283,7 +283,7 @@ export const AlertPage: React.FC<AlertPageProps> = ({ summary, onBack }) => {
                           <a
                             href={alert.html_url}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
                             className="inline-flex items-center space-x-1 px-3 py-1 text-xs font-semibold rounded bg-[#238636] hover:bg-[#2ea043] text-white transition-colors shadow-sm"
                             title="Open this vulnerability directly on GitHub to fix or dismiss"
@@ -459,7 +459,7 @@ export const AlertPage: React.FC<AlertPageProps> = ({ summary, onBack }) => {
                         <a
                           href={alert.html_url}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
                           className="inline-flex items-center space-x-1 px-3 py-1 text-xs font-semibold rounded bg-gh-accent-emphasis hover:bg-blue-600 text-white transition-colors shadow-sm flex-shrink-0"
                           title="Open CodeQL alert in GitHub"
@@ -517,7 +517,7 @@ export const AlertPage: React.FC<AlertPageProps> = ({ summary, onBack }) => {
                       <a
                         href={features.pages_url}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="text-xs text-gh-accent-fg hover:underline inline-flex items-center space-x-1 mt-1 font-mono"
                       >
                         <span>{features.pages_url}</span>
@@ -552,7 +552,7 @@ export const AlertPage: React.FC<AlertPageProps> = ({ summary, onBack }) => {
                       <a
                         href={features.last_pages_run.html_url}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="inline-flex items-center space-x-1 text-xs text-gh-accent-fg hover:underline font-semibold"
                       >
                         <span>View Build Workflow Log</span>

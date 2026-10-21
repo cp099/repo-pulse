@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDashboard } from '../context/DashboardContext';
 import {
   RefreshCw,
@@ -32,6 +32,23 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
     metrics,
   } = useDashboard();
 
+  // Spam protection: 5-second cooldown on manual refresh to protect GitHub API limits
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  const handleManualRefresh = () => {
+    if (isManualScanning || cooldown > 0) return;
+    setCooldown(5);
+    refreshNow(true);
+  };
+
   const handleTabClick = (tab: 'dashboard' | 'repositories') => {
     setSelectedSummary(null);
     setActiveTab(tab);
@@ -42,31 +59,33 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           {/* Left: Brand & Main Navigation Tabs */}
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-4 sm:space-x-6">
             {/* Brand */}
             <button
               onClick={() => handleTabClick('dashboard')}
-              className="flex items-center space-x-2.5 text-left focus:outline-none"
+              aria-label="RepoPulse Home Dashboard"
+              className="flex items-center space-x-2.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-gh-accent-fg rounded-md p-1 -m-1"
             >
               <div className="w-8 h-8 rounded-md bg-gh-canvas-default border border-gh-border-default flex items-center justify-center text-gh-accent-fg shadow-inner">
                 <ShieldAlert className="w-4 h-4 text-gh-accent-fg" />
               </div>
               <div className="flex items-center space-x-2">
                 <span className="font-semibold text-base text-gh-fg-default tracking-tight">RepoPulse</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-gh-accent-subtle text-gh-accent-fg border border-gh-accent-emphasis/30">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono font-semibold bg-gh-accent-subtle text-gh-accent-fg border border-gh-accent-emphasis/30">
                   v1.2
                 </span>
               </div>
             </button>
 
             {/* Navigation Tabs (Dashboard vs Repositories) */}
-            <nav className="hidden sm:flex items-center space-x-1 border-l border-gh-border-default pl-4">
+            <nav aria-label="Main Navigation" className="hidden sm:flex items-center space-x-1 border-l border-gh-border-default pl-4">
               <button
                 onClick={() => handleTabClick('dashboard')}
-                className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                aria-current={activeTab === 'dashboard' ? 'page' : undefined}
+                className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors min-h-[32px] ${
                   activeTab === 'dashboard'
                     ? 'bg-gh-canvas-default text-gh-fg-default border border-gh-border-default shadow-sm'
-                    : 'text-gh-fg-muted hover:text-gh-fg-default hover:bg-gh-canvas-default/40'
+                    : 'text-[#c9d1d9] hover:text-gh-fg-default hover:bg-gh-canvas-default/60'
                 }`}
               >
                 <LayoutDashboard className="w-3.5 h-3.5" />
@@ -75,15 +94,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
 
               <button
                 onClick={() => handleTabClick('repositories')}
-                className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                aria-current={activeTab === 'repositories' ? 'page' : undefined}
+                className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors min-h-[32px] ${
                   activeTab === 'repositories'
                     ? 'bg-gh-canvas-default text-gh-fg-default border border-gh-border-default shadow-sm'
-                    : 'text-gh-fg-muted hover:text-gh-fg-default hover:bg-gh-canvas-default/40'
+                    : 'text-[#c9d1d9] hover:text-gh-fg-default hover:bg-gh-canvas-default/60'
                 }`}
               >
                 <Folders className="w-3.5 h-3.5" />
                 <span>Repositories</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-gh-border-default text-[10px] font-mono text-gh-fg-muted">
+                <span className="px-1.5 py-0.2 rounded-full bg-gh-border-default text-[10px] font-mono font-semibold text-gh-fg-default">
                   {metrics.total_tracked_repos}
                 </span>
               </button>
@@ -92,7 +112,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
 
           {/* Center scan progress bar (manual click only) */}
           {isManualScanning && (
-            <div className="hidden lg:flex items-center space-x-2 px-3 py-1 rounded-md bg-gh-canvas-default border border-gh-border-default text-xs text-gh-fg-muted animate-in fade-in duration-150">
+            <div className="hidden lg:flex items-center space-x-2 px-3 py-1 rounded-md bg-gh-canvas-default border border-gh-border-default text-xs text-[#c9d1d9] animate-in fade-in duration-150">
               <RefreshCw className="w-3.5 h-3.5 animate-spin text-gh-accent-fg" />
               <span>
                 Syncing ({scanProgress.current}/{scanProgress.total}):{' '}
@@ -102,25 +122,36 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
           )}
 
           {/* Right actions */}
-          <div className="flex items-center space-x-2.5">
-            {/* Refresh Button */}
+          <div className="flex items-center space-x-2 sm:space-x-2.5">
+            {/* Refresh Button with Spam/Rate-Limit Cooldown */}
             <button
-              onClick={() => refreshNow(true)}
-              disabled={isManualScanning}
-              className="inline-flex items-center space-x-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-gh-canvas-default hover:bg-gh-border-muted border border-gh-border-default text-gh-fg-default transition-colors disabled:opacity-50"
-              title={`Last updated: ${lastRefreshed ? lastRefreshed.toLocaleTimeString() : 'Never'}`}
+              onClick={handleManualRefresh}
+              disabled={isManualScanning || cooldown > 0}
+              aria-label={cooldown > 0 ? `Refresh cooldown ${cooldown}s` : 'Refresh Repositories Now'}
+              className="inline-flex items-center space-x-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-gh-canvas-default hover:bg-gh-border-muted border border-gh-border-default text-gh-fg-default transition-colors disabled:opacity-50 min-h-[32px]"
+              title={
+                cooldown > 0
+                  ? `Rate limit cooldown: ${cooldown}s`
+                  : `Last updated: ${lastRefreshed ? lastRefreshed.toLocaleTimeString() : 'Never'}`
+              }
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isManualScanning ? 'animate-spin text-gh-accent-fg' : 'text-gh-fg-muted'}`} />
-              <span className="hidden sm:inline">Refresh</span>
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${isManualScanning ? 'animate-spin text-gh-accent-fg' : 'text-gh-accent-fg'}`}
+              />
+              <span className="hidden sm:inline">
+                {cooldown > 0 ? `${cooldown}s` : 'Refresh'}
+              </span>
             </button>
 
             {/* Manage Repos */}
             <button
               onClick={onOpenRepoManager}
-              className="inline-flex items-center space-x-1.5 px-3 py-1 text-xs font-medium rounded-md bg-gh-accent-emphasis hover:bg-blue-600 text-white transition-colors shadow-sm"
+              aria-label="Manage Tracked Repositories"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-gh-accent-emphasis hover:bg-blue-600 text-white transition-colors shadow-sm min-h-[32px]"
             >
               <FolderGit2 className="w-3.5 h-3.5" />
-              <span>Track Repos</span>
+              <span className="hidden sm:inline">Track Repos</span>
+              <span className="sm:hidden">Repos</span>
             </button>
 
             {/* User Auth Profile */}
@@ -136,12 +167,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
                   {currentUser?.displayName ? currentUser.displayName[0] : <Key className="w-3.5 h-3.5 text-gh-accent-fg" />}
                 </div>
               )}
-              <span className="text-xs font-medium text-gh-fg-default hidden sm:inline max-w-[120px] truncate">
+              <span className="text-xs font-medium text-gh-fg-default hidden md:inline max-w-[120px] truncate">
                 {currentUser?.displayName || (config.githubToken ? 'Connected' : 'User')}
               </span>
               <button
                 onClick={logout}
-                className="p-1 rounded text-gh-fg-muted hover:text-gh-danger-fg hover:bg-gh-canvas-default transition-colors"
+                aria-label="Sign out of RepoPulse"
+                className="p-1.5 rounded text-[#8b949e] hover:text-gh-danger-fg hover:bg-gh-canvas-default transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center"
                 title="Sign out / Disconnect"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -151,7 +183,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
             {/* Settings */}
             <button
               onClick={onOpenSettings}
-              className="p-1.5 rounded-md hover:bg-gh-canvas-default border border-transparent hover:border-gh-border-default text-gh-fg-muted hover:text-gh-fg-default transition-colors"
+              aria-label="Settings, API Rate Limit & Credentials"
+              className="p-1.5 rounded-md hover:bg-gh-canvas-default border border-transparent hover:border-gh-border-default text-[#c9d1d9] hover:text-gh-fg-default transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center"
               title="Settings, API Rate Limit & Credentials"
             >
               <Settings className="w-4 h-4" />
@@ -159,33 +192,37 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
           </div>
         </div>
 
-        {/* Mobile Navigation tabs */}
-        <div className="flex sm:hidden items-center space-x-2 pb-2 pt-1 border-t border-gh-border-muted">
+        {/* Mobile Navigation tabs (Touch-Friendly) */}
+        <div className="flex sm:hidden items-center space-x-2 pb-2.5 pt-1.5 border-t border-gh-border-muted">
           <button
             onClick={() => handleTabClick('dashboard')}
-            className={`flex-1 py-1 rounded text-xs font-semibold text-center ${
+            aria-current={activeTab === 'dashboard' ? 'page' : undefined}
+            className={`flex-1 py-1.5 rounded-md text-xs font-semibold text-center min-h-[36px] flex items-center justify-center space-x-1.5 ${
               activeTab === 'dashboard'
-                ? 'bg-gh-canvas-default text-gh-fg-default border border-gh-border-default'
-                : 'text-gh-fg-muted'
+                ? 'bg-gh-canvas-default text-gh-fg-default border border-gh-border-default shadow-sm'
+                : 'text-[#c9d1d9]'
             }`}
           >
-            Dashboard
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            <span>Dashboard</span>
           </button>
           <button
             onClick={() => handleTabClick('repositories')}
-            className={`flex-1 py-1 rounded text-xs font-semibold text-center ${
+            aria-current={activeTab === 'repositories' ? 'page' : undefined}
+            className={`flex-1 py-1.5 rounded-md text-xs font-semibold text-center min-h-[36px] flex items-center justify-center space-x-1.5 ${
               activeTab === 'repositories'
-                ? 'bg-gh-canvas-default text-gh-fg-default border border-gh-border-default'
-                : 'text-gh-fg-muted'
+                ? 'bg-gh-canvas-default text-gh-fg-default border border-gh-border-default shadow-sm'
+                : 'text-[#c9d1d9]'
             }`}
           >
-            Repositories ({metrics.total_tracked_repos})
+            <Folders className="w-3.5 h-3.5" />
+            <span>Repositories ({metrics.total_tracked_repos})</span>
           </button>
         </div>
 
         {/* Auth error banner */}
         {authError && (
-          <div className="py-1.5 px-3 mb-2 rounded bg-gh-danger-subtle border border-gh-danger-fg/40 text-xs text-gh-danger-fg flex items-center justify-between">
+          <div role="alert" className="py-1.5 px-3 mb-2 rounded bg-gh-danger-subtle border border-gh-danger-fg/40 text-xs text-gh-danger-fg flex items-center justify-between">
             <span>{authError}</span>
           </div>
         )}

@@ -321,7 +321,7 @@ export const ExecutiveDashboard: React.FC = () => {
                       <a
                         href={item.features.pages_url}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="text-[11px] text-gh-accent-fg hover:underline truncate block font-mono"
                       >
                         {item.features.pages_url.replace('https://', '')}

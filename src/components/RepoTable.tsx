@@ -238,7 +238,7 @@ const RepoTableRow: React.FC<{
               <a
                 href={features.pages_url}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="text-gh-accent-fg hover:text-blue-400"
                 title={`Visit ${features.pages_url}`}
               >
@@ -256,7 +256,7 @@ const RepoTableRow: React.FC<{
               <a
                 href={features.last_pages_run.html_url}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="text-gh-danger-fg hover:underline font-mono text-[10px]"
                 title="View build workflow run log on GitHub"
               >
@@ -287,7 +287,7 @@ const RepoTableRow: React.FC<{
           <a
             href={`${repo.html_url}/security`}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="p-1 rounded text-gh-fg-muted hover:text-gh-fg-default hover:bg-gh-canvas-default border border-transparent hover:border-gh-border-default transition-colors"
             title="Open Security Center on GitHub"
           >

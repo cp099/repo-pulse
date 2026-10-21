@@ -142,7 +142,7 @@ const RepoDashboardCard: React.FC<{
           <a
             href={`${repo.html_url}/security`}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="p-1 rounded text-gh-fg-muted hover:text-gh-fg-default hover:bg-gh-canvas-default transition-colors flex-shrink-0"
             title="Open in GitHub Security"

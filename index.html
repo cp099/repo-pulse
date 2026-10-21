@@ -2,9 +2,47 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RepoPulse - GitHub Security, Dependabot & Pages Health Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    
+    <!-- Force HTTPS & Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
+    
+    <!-- Primary Meta Tags -->
+    <title>RepoPulse — Real-Time GitHub Security, Dependabot &amp; Pages Health Dashboard</title>
+    <meta name="title" content="RepoPulse — Real-Time GitHub Security, Dependabot &amp; Pages Health Dashboard" />
+    <meta name="description" content="Unified executive health wallboard for GitHub repositories. Monitor Dependabot CVEs, CodeQL security flaws, and GitHub Pages build statuses in one real-time pulse." />
+    <meta name="keywords" content="github, security, dependabot, codeql, cve, github pages, devops, dashboard, monitor, static analysis, vulnerability scanner" />
+    <meta name="author" content="RepoPulse" />
+    <meta name="theme-color" content="#0d1117" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Favicon & PWA Manifest -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="alternate icon" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="favicon.svg" />
+    <link rel="manifest" href="site.webmanifest" />
+    
+    <!-- Performance & Preconnect -->
+    <link rel="preconnect" href="https://api.github.com" crossorigin />
+    <link rel="dns-prefetch" href="https://api.github.com" />
+    
+    <!-- Open Graph / Facebook / LinkedIn -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://cp099.github.io/repo-pulse/" />
+    <meta property="og:title" content="RepoPulse — Real-Time GitHub Security &amp; Pages Health Dashboard" />
+    <meta property="og:description" content="Monitor your entire GitHub portfolio's Dependabot CVEs, CodeQL vulnerabilities, and Pages deployments in one single pulse." />
+    <meta property="og:image" content="https://cp099.github.io/repo-pulse/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="RepoPulse" />
+    
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://cp099.github.io/repo-pulse/" />
+    <meta name="twitter:title" content="RepoPulse — GitHub Security, Dependabot &amp; Pages Dashboard" />
+    <meta name="twitter:description" content="Unified wallboard for Dependabot CVEs, CodeQL security flaws, and GitHub Pages builds." />
+    <meta name="twitter:image" content="https://cp099.github.io/repo-pulse/og-image.svg" />
   </head>
   <body class="bg-gh-canvas-default text-gh-fg-default font-sans antialiased selection:bg-gh-accent-emphasis selection:text-white min-h-screen">
     <div id="root"></div>
