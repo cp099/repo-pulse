@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
-import { MetricsOverview } from './components/MetricsOverview';
+import { ExecutiveDashboard } from './components/ExecutiveDashboard';
 import { FilterToolbar } from './components/FilterToolbar';
 import { RepoTable } from './components/RepoTable';
 import { RepoGrid } from './components/RepoGrid';
@@ -16,6 +16,7 @@ export const AppContent: React.FC = () => {
     isAuthenticated,
     selectedSummary,
     setSelectedSummary,
+    activeTab,
     viewMode,
   } = useDashboard();
 
@@ -29,24 +30,26 @@ export const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gh-canvas-default text-gh-fg-default flex flex-col font-sans selection:bg-gh-accent-emphasis selection:text-white w-full">
-      {/* Top Navbar */}
+      {/* Top Navbar with Tab Switcher */}
       <Navbar
         onOpenRepoManager={() => setIsRepoManagerOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
-      {/* Main Content: Full-page Alert view OR Widescreen Dashboard */}
+      {/* Main Content Area */}
       <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-5">
         {selectedSummary ? (
-          /* Full Page Alert & Vulnerability Detail with Accordion expansion */
+          /* Sub-page 1: Full-Page Alert Detail with Expandable Issues */
           <AlertPage
             summary={selectedSummary}
             onBack={() => setSelectedSummary(null)}
           />
+        ) : activeTab === 'dashboard' ? (
+          /* Main Page: Pure Executive/TV/Mobile Wallboard Dashboard */
+          <ExecutiveDashboard />
         ) : (
-          /* Main Dashboard: High-Level Pulse Metrics + Grid/Table View */
+          /* Sub-page 2: Dedicated Repositories Ledger Sub-Page */
           <div className="space-y-4">
-            <MetricsOverview />
             <FilterToolbar />
             {viewMode === 'grid' ? <RepoGrid /> : <RepoTable />}
           </div>

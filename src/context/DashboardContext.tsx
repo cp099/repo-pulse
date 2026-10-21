@@ -17,6 +17,7 @@ import { scanRepositoryHealth, fetchUserRepositories, getRateLimitInfo, RateLimi
 
 export type SortOption = 'severity' | 'alerts' | 'name' | 'pages';
 export type ViewMode = 'grid' | 'table';
+export type ActiveTab = 'dashboard' | 'repositories';
 
 interface DashboardContextType {
   currentUser: User | null;
@@ -47,6 +48,8 @@ interface DashboardContextType {
   setSortBy: (s: SortOption) => void;
   viewMode: ViewMode;
   setViewMode: (v: ViewMode) => void;
+  activeTab: ActiveTab;
+  setActiveTab: (t: ActiveTab) => void;
   authError: string | null;
   setAuthError: (e: string | null) => void;
 }
@@ -69,6 +72,22 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [availableRepos, setAvailableRepos] = useState<Repository[]>([]);
   const [isLoadingRepos, setIsLoadingRepos] = useState<boolean>(false);
 
+  // Top level views: 'dashboard' (Pure NOC Monitor for TV/Mobile/Laptop) vs 'repositories' (List/Grid ledger)
+  const [activeTab, setActiveTabState] = useState<ActiveTab>(() => {
+    try {
+      const saved = localStorage.getItem('repo_pulse_active_tab');
+      if (saved === 'dashboard' || saved === 'repositories') return saved;
+    } catch {}
+    return 'dashboard';
+  });
+
+  const setActiveTab = (tab: ActiveTab) => {
+    setActiveTabState(tab);
+    try {
+      localStorage.setItem('repo_pulse_active_tab', tab);
+    } catch {}
+  };
+
   // Filters & Sorting & View Mode
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'critical' | 'warning' | 'healthy' | 'pages'>('all');
@@ -78,7 +97,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const saved = localStorage.getItem('repo_pulse_view_mode');
       if (saved === 'grid' || saved === 'table') return saved;
     } catch {}
-    return 'grid';
+    return 'table';
   });
 
   const setViewMode = (mode: ViewMode) => {
@@ -174,7 +193,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [config.githubToken, config.monitoredRepos.length, updateConfig]);
 
-  // Refresh health data for all monitored repos (distinguishing manual vs silent background)
+  // Refresh health data for all monitored repos
   const refreshNow = useCallback(async (manual: boolean = false) => {
     if (isScanning || !config.githubToken) return;
 
@@ -229,7 +248,6 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setIsScanning(false);
     setIsManualScanning(false);
 
-    // Keep selectedSummary updated with fresh scan results if currently viewing it
     if (selectedSummary) {
       const updatedMatch = results.find(s => s.repo.id === selectedSummary.repo.id);
       if (updatedMatch) {
@@ -253,7 +271,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     if (config.autoRefreshInterval <= 0 || !config.githubToken) return;
     const interval = setInterval(() => {
-      refreshNow(false); // Silent background refresh!
+      refreshNow(false);
     }, config.autoRefreshInterval);
 
     return () => clearInterval(interval);
@@ -327,6 +345,8 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setSortBy,
         viewMode,
         setViewMode,
+        activeTab,
+        setActiveTab,
         authError,
         setAuthError,
       }}

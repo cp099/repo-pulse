@@ -7,6 +7,8 @@ import {
   ShieldAlert,
   LogOut,
   Key,
+  LayoutDashboard,
+  Folders,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -24,30 +26,73 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
     refreshNow,
     lastRefreshed,
     authError,
+    activeTab,
+    setActiveTab,
+    setSelectedSummary,
+    metrics,
   } = useDashboard();
+
+  const handleTabClick = (tab: 'dashboard' | 'repositories') => {
+    setSelectedSummary(null);
+    setActiveTab(tab);
+  };
 
   return (
     <header className="border-b border-gh-border-default bg-gh-canvas-subtle sticky top-0 z-30 w-full">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
-          {/* Brand */}
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-md bg-gh-canvas-default border border-gh-border-default flex items-center justify-center text-gh-accent-fg shadow-inner">
-              <ShieldAlert className="w-4 h-4 text-gh-accent-fg" />
-            </div>
-            <div>
+          {/* Left: Brand & Main Navigation Tabs */}
+          <div className="flex items-center space-x-6">
+            {/* Brand */}
+            <button
+              onClick={() => handleTabClick('dashboard')}
+              className="flex items-center space-x-2.5 text-left focus:outline-none"
+            >
+              <div className="w-8 h-8 rounded-md bg-gh-canvas-default border border-gh-border-default flex items-center justify-center text-gh-accent-fg shadow-inner">
+                <ShieldAlert className="w-4 h-4 text-gh-accent-fg" />
+              </div>
               <div className="flex items-center space-x-2">
                 <span className="font-semibold text-base text-gh-fg-default tracking-tight">RepoPulse</span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-gh-accent-subtle text-gh-accent-fg border border-gh-accent-emphasis/30">
                   v1.2
                 </span>
               </div>
-            </div>
+            </button>
+
+            {/* Navigation Tabs (Dashboard vs Repositories) */}
+            <nav className="hidden sm:flex items-center space-x-1 border-l border-gh-border-default pl-4">
+              <button
+                onClick={() => handleTabClick('dashboard')}
+                className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                  activeTab === 'dashboard'
+                    ? 'bg-gh-canvas-default text-gh-fg-default border border-gh-border-default shadow-sm'
+                    : 'text-gh-fg-muted hover:text-gh-fg-default hover:bg-gh-canvas-default/40'
+                }`}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
+              </button>
+
+              <button
+                onClick={() => handleTabClick('repositories')}
+                className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                  activeTab === 'repositories'
+                    ? 'bg-gh-canvas-default text-gh-fg-default border border-gh-border-default shadow-sm'
+                    : 'text-gh-fg-muted hover:text-gh-fg-default hover:bg-gh-canvas-default/40'
+                }`}
+              >
+                <Folders className="w-3.5 h-3.5" />
+                <span>Repositories</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-gh-border-default text-[10px] font-mono text-gh-fg-muted">
+                  {metrics.total_tracked_repos}
+                </span>
+              </button>
+            </nav>
           </div>
 
-          {/* Manual scan progress bar (ONLY appears on manual button click, background sync is completely silent) */}
+          {/* Center scan progress bar (manual click only) */}
           {isManualScanning && (
-            <div className="flex items-center space-x-2 px-3 py-1 rounded-md bg-gh-canvas-default border border-gh-border-default text-xs text-gh-fg-muted animate-in fade-in duration-150">
+            <div className="hidden lg:flex items-center space-x-2 px-3 py-1 rounded-md bg-gh-canvas-default border border-gh-border-default text-xs text-gh-fg-muted animate-in fade-in duration-150">
               <RefreshCw className="w-3.5 h-3.5 animate-spin text-gh-accent-fg" />
               <span>
                 Syncing ({scanProgress.current}/{scanProgress.total}):{' '}
@@ -58,7 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
 
           {/* Right actions */}
           <div className="flex items-center space-x-2.5">
-            {/* Refresh Button (only spins during manual click) */}
+            {/* Refresh Button */}
             <button
               onClick={() => refreshNow(true)}
               disabled={isManualScanning}
@@ -91,8 +136,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
                   {currentUser?.displayName ? currentUser.displayName[0] : <Key className="w-3.5 h-3.5 text-gh-accent-fg" />}
                 </div>
               )}
-              <span className="text-xs font-medium text-gh-fg-default hidden sm:inline max-w-[130px] truncate">
-                {currentUser?.displayName || (config.githubToken ? 'Connected via PAT' : 'User')}
+              <span className="text-xs font-medium text-gh-fg-default hidden sm:inline max-w-[120px] truncate">
+                {currentUser?.displayName || (config.githubToken ? 'Connected' : 'User')}
               </span>
               <button
                 onClick={logout}
@@ -112,6 +157,30 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
               <Settings className="w-4 h-4" />
             </button>
           </div>
+        </div>
+
+        {/* Mobile Navigation tabs */}
+        <div className="flex sm:hidden items-center space-x-2 pb-2 pt-1 border-t border-gh-border-muted">
+          <button
+            onClick={() => handleTabClick('dashboard')}
+            className={`flex-1 py-1 rounded text-xs font-semibold text-center ${
+              activeTab === 'dashboard'
+                ? 'bg-gh-canvas-default text-gh-fg-default border border-gh-border-default'
+                : 'text-gh-fg-muted'
+            }`}
+          >
+            Dashboard
+          </button>
+          <button
+            onClick={() => handleTabClick('repositories')}
+            className={`flex-1 py-1 rounded text-xs font-semibold text-center ${
+              activeTab === 'repositories'
+                ? 'bg-gh-canvas-default text-gh-fg-default border border-gh-border-default'
+                : 'text-gh-fg-muted'
+            }`}
+          >
+            Repositories ({metrics.total_tracked_repos})
+          </button>
         </div>
 
         {/* Auth error banner */}
