@@ -16,6 +16,7 @@ import {
 import { scanRepositoryHealth, fetchUserRepositories, getRateLimitInfo, RateLimitInfo } from '../services/githubApi';
 
 export type SortOption = 'severity' | 'alerts' | 'name' | 'pages';
+export type ViewMode = 'grid' | 'table';
 
 interface DashboardContextType {
   currentUser: User | null;
@@ -30,9 +31,10 @@ interface DashboardContextType {
   setSelectedSummary: (summary: RepoHealthSummary | null) => void;
   metrics: GlobalMetrics;
   isScanning: boolean;
+  isManualScanning: boolean;
   scanProgress: { current: number; total: number; repoName: string };
   lastRefreshed: Date | null;
-  refreshNow: () => Promise<void>;
+  refreshNow: (manual?: boolean) => Promise<void>;
   availableRepos: Repository[];
   isLoadingRepos: boolean;
   fetchAvailableRepos: () => Promise<Repository[]>;
@@ -43,6 +45,8 @@ interface DashboardContextType {
   setFilterStatus: (f: 'all' | 'critical' | 'warning' | 'healthy' | 'pages') => void;
   sortBy: SortOption;
   setSortBy: (s: SortOption) => void;
+  viewMode: ViewMode;
+  setViewMode: (v: ViewMode) => void;
   authError: string | null;
   setAuthError: (e: string | null) => void;
 }
@@ -58,16 +62,31 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   });
   const [selectedSummary, setSelectedSummary] = useState<RepoHealthSummary | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [isManualScanning, setIsManualScanning] = useState<boolean>(false);
   const [scanProgress, setScanProgress] = useState({ current: 0, total: 0, repoName: '' });
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [rateLimit, setRateLimit] = useState<RateLimitInfo>(getRateLimitInfo());
   const [availableRepos, setAvailableRepos] = useState<Repository[]>([]);
   const [isLoadingRepos, setIsLoadingRepos] = useState<boolean>(false);
 
-  // Filters & Sorting (Stitch design system)
+  // Filters & Sorting & View Mode
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'critical' | 'warning' | 'healthy' | 'pages'>('all');
   const [sortBy, setSortBy] = useState<SortOption>('severity');
+  const [viewMode, setViewModeState] = useState<ViewMode>(() => {
+    try {
+      const saved = localStorage.getItem('repo_pulse_view_mode');
+      if (saved === 'grid' || saved === 'table') return saved;
+    } catch {}
+    return 'grid';
+  });
+
+  const setViewMode = (mode: ViewMode) => {
+    setViewModeState(mode);
+    try {
+      localStorage.setItem('repo_pulse_view_mode', mode);
+    } catch {}
+  };
 
   const isAuthenticated = !!currentUser || !!config.githubToken;
 
@@ -84,7 +103,6 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const unsubscribe = subscribeToAuth(async (user) => {
       setCurrentUser(user);
       if (user) {
-        // Fetch cloud data for this authenticated user
         const cloudData = await fetchHealthFromCloud(user.uid);
         if (cloudData) {
           if (cloudData.monitoredRepos && cloudData.monitoredRepos.length > 0) {
@@ -125,6 +143,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     await signOutUser();
     setCurrentUser(null);
     setHealthSummaries([]);
+    setSelectedSummary(null);
     updateConfig({ githubToken: '', monitoredRepos: [] });
     saveLocalHealthCache([]);
   }, [updateConfig]);
@@ -141,7 +160,6 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setAvailableRepos(repos);
       setRateLimit(getRateLimitInfo());
 
-      // If user has no monitored repos configured yet, auto-select their top repositories
       if (config.monitoredRepos.length === 0 && repos.length > 0) {
         const initialTracked = repos.slice(0, 15).map(r => r.full_name);
         updateConfig({ monitoredRepos: initialTracked });
@@ -156,11 +174,15 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [config.githubToken, config.monitoredRepos.length, updateConfig]);
 
-  // Refresh health data for all monitored repos
-  const refreshNow = useCallback(async () => {
+  // Refresh health data for all monitored repos (distinguishing manual vs silent background)
+  const refreshNow = useCallback(async (manual: boolean = false) => {
     if (isScanning || !config.githubToken) return;
 
     setIsScanning(true);
+    if (manual) {
+      setIsManualScanning(true);
+    }
+
     const results: RepoHealthSummary[] = [];
 
     let reposList = availableRepos;
@@ -172,11 +194,12 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const total = reposToScan.length;
 
     if (total === 0 && reposList.length > 0) {
-      // Auto-scan first repos if none explicitly selected
       const defaultRepos = reposList.slice(0, 15);
       for (let i = 0; i < defaultRepos.length; i++) {
         const repo = defaultRepos[i];
-        setScanProgress({ current: i + 1, total: defaultRepos.length, repoName: repo.full_name });
+        if (manual) {
+          setScanProgress({ current: i + 1, total: defaultRepos.length, repoName: repo.full_name });
+        }
         try {
           const summary = await scanRepositoryHealth(repo, config.githubToken);
           results.push(summary);
@@ -187,8 +210,9 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } else {
       for (let i = 0; i < total; i++) {
         const repo = reposToScan[i];
-        setScanProgress({ current: i + 1, total, repoName: repo.full_name });
-
+        if (manual) {
+          setScanProgress({ current: i + 1, total, repoName: repo.full_name });
+        }
         try {
           const summary = await scanRepositoryHealth(repo, config.githubToken);
           results.push(summary);
@@ -203,24 +227,33 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setRateLimit(getRateLimitInfo());
     setLastRefreshed(new Date());
     setIsScanning(false);
+    setIsManualScanning(false);
+
+    // Keep selectedSummary updated with fresh scan results if currently viewing it
+    if (selectedSummary) {
+      const updatedMatch = results.find(s => s.repo.id === selectedSummary.repo.id);
+      if (updatedMatch) {
+        setSelectedSummary(updatedMatch);
+      }
+    }
 
     if (currentUser) {
       syncHealthToCloud(currentUser.uid, config.monitoredRepos, results);
     }
-  }, [isScanning, config.githubToken, config.monitoredRepos, availableRepos, fetchAvailableRepos, currentUser]);
+  }, [isScanning, config.githubToken, config.monitoredRepos, availableRepos, fetchAvailableRepos, selectedSummary, currentUser]);
 
-  // When token becomes available and we don't have summaries, trigger initial scan
+  // Initial scan on login
   useEffect(() => {
     if (config.githubToken && healthSummaries.length === 0 && !isScanning) {
-      refreshNow();
+      refreshNow(true);
     }
   }, [config.githubToken]);
 
-  // Auto-refresh interval
+  // Auto-refresh interval (silent background sync)
   useEffect(() => {
     if (config.autoRefreshInterval <= 0 || !config.githubToken) return;
     const interval = setInterval(() => {
-      refreshNow();
+      refreshNow(false); // Silent background refresh!
     }, config.autoRefreshInterval);
 
     return () => clearInterval(interval);
@@ -278,6 +311,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setSelectedSummary,
         metrics,
         isScanning,
+        isManualScanning,
         scanProgress,
         lastRefreshed,
         refreshNow,
@@ -291,6 +325,8 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setFilterStatus,
         sortBy,
         setSortBy,
+        viewMode,
+        setViewMode,
         authError,
         setAuthError,
       }}

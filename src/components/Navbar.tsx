@@ -5,7 +5,6 @@ import {
   Settings,
   FolderGit2,
   ShieldAlert,
-  Zap,
   LogOut,
   Key,
 } from 'lucide-react';
@@ -20,17 +19,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
     currentUser,
     config,
     logout,
-    isScanning,
+    isManualScanning,
     scanProgress,
     refreshNow,
-    rateLimit,
     lastRefreshed,
     authError,
   } = useDashboard();
 
   return (
-    <header className="border-b border-gh-border-default bg-gh-canvas-subtle sticky top-0 z-30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="border-b border-gh-border-default bg-gh-canvas-subtle sticky top-0 z-30 w-full">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           {/* Brand */}
           <div className="flex items-center space-x-3">
@@ -47,12 +45,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
             </div>
           </div>
 
-          {/* Center scan progress */}
-          {isScanning && (
-            <div className="hidden md:flex items-center space-x-2 px-3 py-1 rounded-md bg-gh-canvas-default border border-gh-border-default text-xs text-gh-fg-muted">
+          {/* Manual scan progress bar (ONLY appears on manual button click, background sync is completely silent) */}
+          {isManualScanning && (
+            <div className="flex items-center space-x-2 px-3 py-1 rounded-md bg-gh-canvas-default border border-gh-border-default text-xs text-gh-fg-muted animate-in fade-in duration-150">
               <RefreshCw className="w-3.5 h-3.5 animate-spin text-gh-accent-fg" />
               <span>
-                Scanning ({scanProgress.current}/{scanProgress.total}):{' '}
+                Syncing ({scanProgress.current}/{scanProgress.total}):{' '}
                 <strong className="text-gh-fg-default font-mono text-[11px]">{scanProgress.repoName}</strong>
               </span>
             </div>
@@ -60,26 +58,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
 
           {/* Right actions */}
           <div className="flex items-center space-x-2.5">
-            {/* Live Rate Limit */}
-            <div
-              className="hidden lg:flex items-center space-x-1 text-xs text-gh-fg-muted px-2 py-1 rounded bg-gh-canvas-default border border-gh-border-muted"
-              title="GitHub REST API Rate Limit Remaining"
-            >
-              <Zap className="w-3 h-3 text-gh-warning-fg" />
-              <span className="text-[11px]">API:</span>
-              <span className={`font-mono font-medium text-[11px] ${rateLimit.remaining < 500 ? 'text-gh-danger-fg' : 'text-gh-fg-default'}`}>
-                {rateLimit.remaining.toLocaleString()}
-              </span>
-            </div>
-
-            {/* Refresh Now */}
+            {/* Refresh Button (only spins during manual click) */}
             <button
-              onClick={() => refreshNow()}
-              disabled={isScanning}
+              onClick={() => refreshNow(true)}
+              disabled={isManualScanning}
               className="inline-flex items-center space-x-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-gh-canvas-default hover:bg-gh-border-muted border border-gh-border-default text-gh-fg-default transition-colors disabled:opacity-50"
               title={`Last updated: ${lastRefreshed ? lastRefreshed.toLocaleTimeString() : 'Never'}`}
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin text-gh-accent-fg' : 'text-gh-fg-muted'}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isManualScanning ? 'animate-spin text-gh-accent-fg' : 'text-gh-fg-muted'}`} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
 
@@ -93,7 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
             </button>
 
             {/* User Auth Profile */}
-            <div className="flex items-center space-x-2 pl-1 border-l border-gh-border-default">
+            <div className="flex items-center space-x-2 pl-1.5 border-l border-gh-border-default">
               {currentUser?.photoURL ? (
                 <img
                   src={currentUser.photoURL}
@@ -105,7 +91,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
                   {currentUser?.displayName ? currentUser.displayName[0] : <Key className="w-3.5 h-3.5 text-gh-accent-fg" />}
                 </div>
               )}
-              <span className="text-xs font-medium text-gh-fg-default hidden sm:inline max-w-[110px] truncate">
+              <span className="text-xs font-medium text-gh-fg-default hidden sm:inline max-w-[130px] truncate">
                 {currentUser?.displayName || (config.githubToken ? 'Connected via PAT' : 'User')}
               </span>
               <button
@@ -121,14 +107,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRepoManager, onOpenSetting
             <button
               onClick={onOpenSettings}
               className="p-1.5 rounded-md hover:bg-gh-canvas-default border border-transparent hover:border-gh-border-default text-gh-fg-muted hover:text-gh-fg-default transition-colors"
-              title="Settings & Manual PAT"
+              title="Settings, API Rate Limit & Credentials"
             >
               <Settings className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Auth error notification banner if any */}
+        {/* Auth error banner */}
         {authError && (
           <div className="py-1.5 px-3 mb-2 rounded bg-gh-danger-subtle border border-gh-danger-fg/40 text-xs text-gh-danger-fg flex items-center justify-between">
             <span>{authError}</span>

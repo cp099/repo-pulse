@@ -3,7 +3,8 @@ import { Navbar } from './components/Navbar';
 import { MetricsOverview } from './components/MetricsOverview';
 import { FilterToolbar } from './components/FilterToolbar';
 import { RepoTable } from './components/RepoTable';
-import { AlertDetailDrawer } from './components/AlertDetailDrawer';
+import { RepoGrid } from './components/RepoGrid';
+import { AlertPage } from './components/AlertPage';
 import { RepoManagementModal } from './components/RepoManagementModal';
 import { SettingsModal } from './components/SettingsModal';
 import { OnboardingHome } from './components/OnboardingHome';
@@ -11,39 +12,50 @@ import { useDashboard } from './context/DashboardContext';
 import { ShieldCheck } from 'lucide-react';
 
 export const AppContent: React.FC = () => {
-  const { isAuthenticated } = useDashboard();
+  const {
+    isAuthenticated,
+    selectedSummary,
+    setSelectedSummary,
+    viewMode,
+  } = useDashboard();
+
   const [isRepoManagerOpen, setIsRepoManagerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // If not authenticated, render the high-converting Onboarding Home Landing Page!
+  // Unauthenticated landing page
   if (!isAuthenticated) {
     return <OnboardingHome />;
   }
 
-  // Once authenticated (via 1-click GitHub OAuth or manual PAT), render the Full Dashboard!
   return (
-    <div className="min-h-screen bg-gh-canvas-default text-gh-fg-default flex flex-col font-sans selection:bg-gh-accent-emphasis selection:text-white">
-      {/* Navbar */}
+    <div className="min-h-screen bg-gh-canvas-default text-gh-fg-default flex flex-col font-sans selection:bg-gh-accent-emphasis selection:text-white w-full">
+      {/* Top Navbar */}
       <Navbar
         onOpenRepoManager={() => setIsRepoManagerOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5">
-        {/* Metric Overview Cards */}
-        <MetricsOverview />
-
-        {/* Filter and Search Bar */}
-        <FilterToolbar />
-
-        {/* Repository Ledger Table */}
-        <RepoTable />
+      {/* Main Content: Full-page Alert view OR Widescreen Dashboard */}
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-5">
+        {selectedSummary ? (
+          /* Full Page Alert & Vulnerability Detail with Accordion expansion */
+          <AlertPage
+            summary={selectedSummary}
+            onBack={() => setSelectedSummary(null)}
+          />
+        ) : (
+          /* Main Dashboard: High-Level Pulse Metrics + Grid/Table View */
+          <div className="space-y-4">
+            <MetricsOverview />
+            <FilterToolbar />
+            {viewMode === 'grid' ? <RepoGrid /> : <RepoTable />}
+          </div>
+        )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gh-border-default bg-gh-canvas-subtle py-5 text-xs text-gh-fg-muted mt-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <footer className="border-t border-gh-border-default bg-gh-canvas-subtle py-5 text-xs text-gh-fg-muted mt-10 w-full">
+        <div className="w-full px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
             <ShieldCheck className="w-4 h-4 text-gh-accent-fg" />
             <span>RepoPulse · Automated GitHub Security & Health Operations</span>
@@ -69,9 +81,6 @@ export const AppContent: React.FC = () => {
           </div>
         </div>
       </footer>
-
-      {/* Slide-over Drawer for Granular Alert Details */}
-      <AlertDetailDrawer />
 
       {/* Modal for Selecting Tracked Repos */}
       <RepoManagementModal

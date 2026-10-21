@@ -1,6 +1,16 @@
 import React from 'react';
 import { useDashboard } from '../context/DashboardContext';
-import { Search, ShieldAlert, AlertTriangle, ShieldCheck, Globe, ListFilter, ArrowUpDown } from 'lucide-react';
+import {
+  Search,
+  ShieldAlert,
+  AlertTriangle,
+  ShieldCheck,
+  Globe,
+  ListFilter,
+  ArrowUpDown,
+  LayoutGrid,
+  List,
+} from 'lucide-react';
 import { SortOption } from '../context/DashboardContext';
 
 export const FilterToolbar: React.FC = () => {
@@ -11,6 +21,8 @@ export const FilterToolbar: React.FC = () => {
     setFilterStatus,
     sortBy,
     setSortBy,
+    viewMode,
+    setViewMode,
     metrics,
     healthSummaries,
   } = useDashboard();
@@ -18,9 +30,9 @@ export const FilterToolbar: React.FC = () => {
   const pagesCount = healthSummaries.filter(s => s.features.pages_enabled).length;
 
   return (
-    <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 mb-3.5">
-      {/* Tabs */}
-      <div className="flex items-center space-x-1 border-b md:border-b-0 border-gh-border-muted overflow-x-auto pb-1.5 md:pb-0 scrollbar-none">
+    <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 mb-4">
+      {/* Status filter tabs */}
+      <div className="flex items-center space-x-1 border-b lg:border-b-0 border-gh-border-muted overflow-x-auto pb-1.5 lg:pb-0 scrollbar-none">
         {/* All */}
         <button
           onClick={() => setFilterStatus('all')}
@@ -102,8 +114,34 @@ export const FilterToolbar: React.FC = () => {
         </button>
       </div>
 
-      {/* Search & Sort Controls */}
-      <div className="flex items-center space-x-2">
+      {/* View switch, sort & search */}
+      <div className="flex items-center space-x-2.5 flex-wrap gap-y-2">
+        {/* View Switcher: Dashboard Cards vs Table */}
+        <div className="flex items-center p-0.5 rounded-md bg-gh-canvas-subtle border border-gh-border-default">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-1.5 rounded text-xs transition-colors ${
+              viewMode === 'grid'
+                ? 'bg-gh-canvas-default text-gh-fg-default shadow-sm'
+                : 'text-gh-fg-muted hover:text-gh-fg-default'
+            }`}
+            title="Dashboard Cards View"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`p-1.5 rounded text-xs transition-colors ${
+              viewMode === 'table'
+                ? 'bg-gh-canvas-default text-gh-fg-default shadow-sm'
+                : 'text-gh-fg-muted hover:text-gh-fg-default'
+            }`}
+            title="Dense Table View"
+          >
+            <List className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
         {/* Sort selector */}
         <div className="flex items-center space-x-1 bg-gh-canvas-subtle border border-gh-border-default rounded-md px-2 py-1 text-xs">
           <ArrowUpDown className="w-3 h-3 text-gh-fg-muted" />
@@ -120,7 +158,7 @@ export const FilterToolbar: React.FC = () => {
         </div>
 
         {/* Search Input */}
-        <div className="relative min-w-[220px]">
+        <div className="relative min-w-[200px] flex-1 sm:flex-initial">
           <Search className="w-3.5 h-3.5 text-gh-fg-muted absolute left-2.5 top-2" />
           <input
             type="text"
